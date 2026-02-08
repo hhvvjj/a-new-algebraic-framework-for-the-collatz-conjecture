@@ -1,0 +1,1997 @@
+<!--
+  The Collatz Amphora
+  
+  An interactive 3D visualization tool that integrates the complete Tuple-based Transform framework into a single explorable 
+  structure. The tool demonstrates how all Collatz sequences converge through 42 pre-computed wormhole pathways arranged in 
+  an amphora-shaped geometric form.
+
+  Enter any positive integer up to 10 billion and explore:
+    - **3D visualization** of the 42 known wormhole sequences forming the amphora structure
+    - **Real-time classification** into taxonomy types (A, B, or C) based on maximum value position
+    - **Computational optimization** showing steps saved by intersecting pre-calculated wormhole paths
+    - **Interactive navigation** through your sequence with color-coded sphere highlighting
+
+  The amphora structure serves as a visual proof of universal convergence: every input number eventually intersects one of the 
+  42 wormholes, guaranteeing convergence to the cycle (4, 2, 1).
+  
+  Author: Javier Hernandez
+  Email: 271314@pm.me
+  License: https://github.com/hhvvjj/a-new-algebraic-collatz-framework/blob/main/LICENSE
+  Repository: https://github.com/hhvvjj/a-new-algebraic-collatz-framework/tree/main/step06-the-collatz-amphora
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Collatz Amphora</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas { 
+            display: block; 
+        }
+        
+        .controls-top {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            color: white;
+            background: #000000;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            z-index: 100;
+        }
+        
+        #error {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            right: 20px;
+            padding: 0 40px;
+            z-index: 1001;
+            display: none;
+        }
+
+        .error-message {
+            background: #7f1d1d;
+            border: 1px solid #fcc;
+            color: #fee;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-bottom {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        
+        .info-panel {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 210px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            height: 345px;
+            min-height: 345px;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+      
+        .info-panel h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+                
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 6px 0;
+            min-height: 24px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            min-width: 80px;
+            text-align: left;
+        }
+        
+        .info-value {
+            font-weight: bold;
+            color: #fff;
+            text-align: right;
+            font-size: 13px;
+            min-width: 80px;
+        }
+        
+        .n-value {
+            color: #fff;
+        }
+
+        .mr-value {
+            color: #fff;
+        }
+
+        .pseudocycle-value {
+            color: #ff0000;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .elements-value {
+            color: #2196F3;
+        }
+        
+        .steps-value {
+            color: #00BCD4;
+        }
+        
+        .computed-value {
+            color: #FF9800;
+        }
+        
+        .saved-value {
+            color: #44ff44;
+        }
+        .max-value {
+            color: #9C27B0;
+        }
+        
+        .rotation-panel {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            height: 345px;
+            min-height: 345px;
+            justify-content: center;
+        }
+        
+        .rotation-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .rotation-label {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        
+        .rotation-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .controls-top h3 { 
+            margin: 0; color: #fff; flex-shrink: 0; 
+        }
+
+        .button-group { 
+            display: flex; gap: 10px; flex-shrink: 0; align-items: center; 
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 5px 0 0;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover { 
+            background: #45a049; 
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        input:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        button.legend-btn {
+            background: #2196F3;
+        }
+        
+        button.legend-btn:hover {
+            background: #1976D2;
+        }
+        
+        button.legend-btn:disabled {
+            background: #666;
+        }
+      
+        .rotation-btn {
+            background: #9C27B0;
+            padding: 6px 10px;
+            font-size: 11px;
+            min-width: 30px;
+        }
+        
+        .rotation-btn:hover {
+            background: #7B1FA2;
+        }
+        
+        .info-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .legend-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .legend-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 675px;
+            max-width: 90%;
+            color: #333;
+        }
+        
+        .legend-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .legend-close:hover {
+            color: #000;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        .legend-sphere {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 2px solid #333;
+        }
+        
+        .legend-white { 
+            background: #ffffff; 
+        }
+
+        .legend-green { 
+            background: #44ff44;
+        }
+
+        .legend-red { 
+            background: #ff0000; 
+        }
+
+        .legend-orange { 
+            background: #ffb347; 
+        }
+
+        .legend-yellow { 
+            background: #ffff00; 
+        }
+        
+        .sequence-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 10px;
+            word-wrap: break-word;
+            max-height: 120px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .sequence-display span {
+            padding: 2px 4px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .max-value-highlight {
+            font-weight: bold; 
+            border: 1px solid rgba(255,255,255,0.6); 
+            padding: 2px 4px; 
+            border-radius: 4px; 
+            background: rgba(255,255,255,0.6);
+        }
+        
+        .seq-one { 
+            color: #ffffff; font-weight: bold; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
+
+        .seq-dictionary { 
+            color: #44ff44; font-weight: bold; 
+        }
+
+        .seq-pseudocycle { 
+            color: #ff0000; font-weight: bold; 
+        }
+
+        .seq-computed { 
+            color: #ffb347; font-weight: bold; 
+        }
+
+        .seq-current { 
+            background: #ffff00; color: #000; padding: 2px 4px; border-radius: 3px; 
+        }
+
+        .seq-max { 
+            font-weight: bold; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.6);
+        }
+
+        .type-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        
+        .type-a { 
+            background: #2196F3; color: white; 
+        }
+
+        .type-b { 
+            background: #673AB7; color: white; 
+        }
+
+        .type-c { 
+            background: #795548; color: white; 
+        }
+
+        .current-value-highlight {
+            background: #FFD700;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .equation-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(48, 48, 48, 0.6);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Times New Roman', serif;
+        }
+    </style>
+ 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="controls-top">
+        <h3>The Collatz Amphora</h3>
+        <div class="button-group">
+            <input type="number" id="numberInput" placeholder="n > 0" min="1" max="10000000000" style="width: 140px; padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-right: 10px;">
+            <button id="processBtn" onclick="processCollatz()">Process</button>
+            <button id="prevBtn" onclick="previous()">Previous</button>
+            <button id="nextBtn" onclick="next()">Next</button>
+            <button id="legendBtn" class="legend-btn" onclick="showLegend()">Legend</button>
+        </div>
+    </div>
+
+    <div id="error" style="display: none;"></div>
+
+    <div class="rotation-panel">
+        <div class="rotation-group">
+            <div class="rotation-label">Rotation X</div>
+            <div class="rotation-buttons">
+                <button id="rotXUpBtn" class="rotation-btn" onclick="rotateX(-0.1)">↑</button>
+                <button id="rotXDownBtn" class="rotation-btn" onclick="rotateX(0.1)">↓</button>
+            </div>
+        </div>
+        <div class="rotation-group">
+            <div class="rotation-label">Rotation Y</div>
+            <div class="rotation-buttons">
+                <button id="rotYLeftBtn" class="rotation-btn" onclick="rotateY(-0.1)">←</button>
+                <button id="rotYRightBtn" class="rotation-btn" onclick="rotateY(0.1)">→</button>
+            </div>
+        </div>
+        <div class="rotation-group">
+            <div class="rotation-label">Rotation Z</div>
+            <div class="rotation-buttons">
+                <button id="rotZLeftBtn" class="rotation-btn" onclick="rotateZ(-0.1)">⟲</button>
+                <button id="rotZRightBtn" class="rotation-btn" onclick="rotateZ(0.1)">⟳</button>
+            </div>
+        </div>
+        <div class="rotation-group">
+            <div class="rotation-label">Zoom</div>
+            <div class="rotation-buttons">
+                <button id="zoomInBtn" class="rotation-btn" onclick="zoomIn()">+</button>
+                <button id="zoomOutBtn" class="rotation-btn" onclick="zoomOut()">-</button>
+            </div>
+        </div>
+        <button id="resetBtn" onclick="resetRotation()" style="margin-top: 10px; font-size: 11px; padding: 6px 12px;">Reset View</button>
+    </div>
+
+    <div class="info-panel" id="infoPanel">
+        <h3>Sequence Info</h3>
+        <div id="infoPanelContent">
+            <div class="info-item">
+                <div class="info-label">n</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">mr Class</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Pseudocycle Ends</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Number of Elements</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Total Steps</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Computed Steps</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Saved Steps</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Max Value</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Sequence Type</div>
+                <div class="info-value">-</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-bottom">
+        <div class="info-title">Collatz Sequence</div>
+        <div id="sequenceDisplay" class="sequence-display">
+            Enter a number to start
+        </div>
+    </div>
+
+    <div id="legendModal" class="legend-modal">
+        <div class="legend-content">
+            <span class="legend-close" onclick="hideLegend()">&times;</span>
+            <h2>Color Legend</h2>
+            <div class="legend-item">
+                <div class="legend-sphere legend-white"></div>
+                <div><strong>White Spheres</strong><br>Convergence point, trivial cycle, where all sequences end</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-sphere legend-green"></div>
+                <div><strong>Green Spheres</strong><br>Predefined values (42 well-known wormhole sequences)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-sphere legend-red"></div>
+                <div><strong>Red Spheres</strong><br>Entry Point and Exiting Point on the pseudocycles</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-sphere legend-orange"></div>
+                <div><strong>Orange Spheres</strong><br>Computed values in the sequence before an entry point</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-sphere legend-yellow"></div>
+                <div><strong>Yellow Sphere</strong><br>Highlights the current value during navigation</div>
+            </div>
+            <div class="legend-item">
+                <div style="width: 30px; height: 30px; border-radius: 50%; margin-right: 15px; border: 2px solid #333; background: #888; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 10px;">MAX</div>
+                <div><strong>Large Sphere</strong><br>The maximum value in the sequence. It helps identify sequence type (A, B or C)</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+
+        /* *******************************************************************************************************************
+         * INITIALIZATION VARIABLES & CONSTANTS - THE COLLATZ AMPHORA
+         * ********************************************************************************************************************
+         * Global variables and constants that define the behavior, appearance and state
+         * of the Collatz Amphora 3D visualization system.
+         */
+        const STANDARD_SPHERE_SPACING = 0.35;
+        const sphereSize = 0.08;
+        
+        const SPHERE_COLORS = {
+            WHITE: 0xffffff,
+            GREEN: 0x44ff44,
+            RED: 0xff0000,
+            ORANGE: 0xffb347,
+            YELLOW: 0xffff00
+        };
+        
+        let scene, camera, renderer;
+        let spheresGroup, extensionsGroup;
+        let isMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+        let rotationX = 0, rotationY = Math.PI / 4, rotationZ = 0;
+        let masterCurves = [];
+        let convergencePoints = [];
+        let processedResults = [];
+        let currentResultIndex = -1;
+        let currentSequenceIndex = 0;
+        let currentHighlightedSphere = null;
+
+        /**
+         * Multiple values characterizing 42 patterns
+         * 
+         * This is the heart of the Collatz Amphora system. Each entry represents one of the
+         * 42 mathematically proven pseudocycles.
+         * 
+         * Structure of each entry:
+         * - mr: The entry point = exiting point for the 42 pseudocycles (Tuple-based Transform domain)
+         * - pseudocycle: The entry point =! exiting point for the 42 pseudocycles (Collatz domain)
+         * - wormhole: Complete sequence from entry point value to convergence [1]
+         * 
+         * This data was computed using the algorithms described in the research paper
+         * "On the Convergence of Collatz Sequences: A New Algebraic Framework"
+         */
+        const DICTIONARY = {
+            1: {
+                pseudocycle: [1,1],
+                mr: 0,
+                wormhole: [1]
+            },
+            3: {
+                pseudocycle: [3,4],
+                mr: 1,
+                wormhole: [3,10,5,16,8,4,2,1]
+            },
+            6: {
+                pseudocycle: [6,5],
+                mr: 2,
+                wormhole: [6,3,10,5,16,8,4,2,1]
+            },
+            7: {
+                pseudocycle: [7,8],
+                mr: 3,
+                wormhole: [7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            14: {
+                pseudocycle: [14,13],
+                mr: 6,
+                wormhole: [14,7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            15: {
+                pseudocycle: [15,16],
+                mr: 7,
+                wormhole: [15,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            18: {
+                pseudocycle: [18,17],
+                mr: 8,
+                wormhole: [18,9,28,14,7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            19: {
+                pseudocycle: [19,20],
+                mr: 9,
+                wormhole: [19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            25: {
+                pseudocycle: [25,26],
+                mr: 12,
+                wormhole: [25,76,38,19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            33: {
+                pseudocycle: [33,34],
+                mr: 16,
+                wormhole: [33,100,50,25,76,38,19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            39: {
+                pseudocycle: [39,40],
+                mr: 19,
+                wormhole: [39,118,59,178,89,268,134,67,202,101,304,152,76,38,19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            51: {
+                pseudocycle: [51,52],
+                mr: 25,
+                wormhole: [51,154,77,232,116,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+            },
+            91: {
+                pseudocycle: [91,92],
+                mr: 45,
+                wormhole: [91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            108: {
+                pseudocycle: [108,107],
+                mr: 53,
+                wormhole: [108,54,27,82,41,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            121: {
+                pseudocycle: [121,122],
+                mr: 60,
+                wormhole: [121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            159: {
+                pseudocycle: [159,160],
+                mr: 79,
+                wormhole: [159,478,239,718,359,1078,539,1618,809,2428,1214,607,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            183: {
+                pseudocycle: [183,184],
+                mr: 91,
+                wormhole: [183,550,275,826,413,1240,620,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            243: {
+                pseudocycle: [243,244],
+                mr: 121,
+                wormhole: [243,730,365,1096,548,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            252: {
+                pseudocycle: [252,251],
+                mr: 125,
+                wormhole: [252,126,63,190,95,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            284: {
+                pseudocycle: [284,283],
+                mr: 141,
+                wormhole: [284,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            333: {
+                pseudocycle: [333,334],
+                mr: 166,
+                wormhole: [333,1000,500,250,125,376,188,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            378: {
+                pseudocycle: [378,377],
+                mr: 188,
+                wormhole: [378,189,568,284,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            411: {
+                pseudocycle: [411,412],
+                mr: 205,
+                wormhole: [411,1234,617,1852,926,463,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            487: {
+                pseudocycle: [487,488],
+                mr: 243,
+                wormhole: [487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            501: {
+                pseudocycle: [501,502],
+                mr: 250,
+                wormhole: [501,1504,752,376,188,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            649: {
+                pseudocycle: [649,650],
+                mr: 324,
+                wormhole: [649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            667: {
+                pseudocycle: [667,668],
+                mr: 333,
+                wormhole: [667,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            865: {
+                pseudocycle: [865,866],
+                mr: 432,
+                wormhole: [865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            889: {
+                pseudocycle: [889,890],
+                mr: 444,
+                wormhole: [889,2668,1334,667,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            975: {
+                pseudocycle: [975,976],
+                mr: 487,
+                wormhole: [975,2926,1463,4390,2195,6586,3293,9880,4940,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1153: {
+                pseudocycle: [1153,1154],
+                mr: 576,
+                wormhole: [1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1185: {
+                pseudocycle: [1185,1186],
+                mr: 592,
+                wormhole: [1185,3556,1778,889,2668,1334,667,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1299: {
+                pseudocycle: [1299,1300],
+                mr: 649,
+                wormhole: [1299,3898,1949,5848,2924,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1335: {
+                pseudocycle: [1335,1336],
+                mr: 667,
+                wormhole: [1335,4006,2003,6010,3005,9016,4508,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1368: {
+                pseudocycle: [1368,1367],
+                mr: 683,
+                wormhole: [1368,684,342,171,514,257,772,386,193,580,290,145,436,218,109,328,164,82,41,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1731: {
+                pseudocycle: [1731,1732],
+                mr: 865,
+                wormhole: [1731,5194,2597,7792,3896,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            1779: {
+                pseudocycle: [1779,1780],
+                mr: 889,
+                wormhole: [1779,5338,2669,8008,4004,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            2307: {
+                pseudocycle: [2307,2308],
+                mr: 1153,
+                wormhole: [2307,6922,3461,10384,5192,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            2430: {
+                pseudocycle: [2430,2429],
+                mr: 1214,
+                wormhole: [2430,1215,3646,1823,5470,2735,8206,4103,12310,6155,18466,9233,27700,13850,6925,20776,10388,5194,2597,7792,3896,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            3643: {
+                pseudocycle: [3643,3644],
+                mr: 1821,
+                wormhole: [3643,10930,5465,16396,8198,4099,12298,6149,18448,9224,4612,2306,1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            4857: {
+                pseudocycle: [4857,4858],
+                mr: 2428,
+                wormhole: [4857,14572,7286,3643,10930,5465,16396,8198,4099,12298,6149,18448,9224,4612,2306,1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            },
+            7287: {
+                pseudocycle: [7287,7288],
+                mr: 3643,
+                wormhole: [7287,21862,10931,32794,16397,49192,24596,12298,6149,18448,9224,4612,2306,1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
+            }
+        };
+               
+        /* *******************************************************************************************************************
+         * CORE MATHEMATICAL FUNCTIONS - THE COLLATZ AMPHORA
+         * *******************************************************************************************************************
+         * This section implements the fundamental Collatz operations and the
+         * Tuple-based Transform classification system for sequence analysis.
+         */
+
+        /**
+         * Computes the complete Collatz sequence for a given starting number
+         * 
+         * Implements the standard Collatz conjecture rules:
+         * - If n is even: divide by 2
+         * - If n is odd: multiply by 3 and add 1
+         * 
+         * Continues until reaching 1, which marks the end of the sequence.
+         * All known Collatz sequences eventually reach the cycle (4,2,1).
+         * 
+         * @param {number} n - The starting number (must be positive integer)
+         * @returns {Array<number>} Complete sequence from n to 1
+         * 
+         * @example
+         * calculateCollatz(3) // returns [3, 10, 5, 16, 8, 4, 2, 1]
+         * calculateCollatz(7) // returns [7, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1]
+         */
+        function calculateCollatz(n) {
+            const sequence = [n];
+            while (n !== 1) {
+                if (n % 2 === 0) {
+                    n = n / 2; // Even case: divide by 2
+                } else {
+                    n = 3 * n + 1; // Odd case: multiply by 3 and add 1
+                }
+                sequence.push(n);
+            }
+            return sequence;
+        }
+
+        /**
+         * Processes a user-input number through the Collatz algorithm
+         * 
+         * This function handles the complete workflow:
+         * 1. Validates user input
+         * 2. Computes the Collatz sequence
+         * 3. Finds intersection with precomputed wormhole data
+         * 4. Updates the 3D visualization
+         * 5. Displays sequence information
+         * 
+         * The function searches for an "entry point" - the first value in the precomputed
+         * sequence that matches a key in the DICTIONARY. This represents the point
+         * where the sequence enters a known "wormhole" path.
+         * 
+         * @returns {void} Updates global state and UI
+         * 
+         * @throws {Alert} If input is invalid or no wormhole intersection found
+         */
+        function processCollatz() {
+            const input = document.getElementById('numberInput');
+            const number = parseInt(input.value);
+            const errorDiv = document.getElementById('error');
+
+            // Input validation
+            if (!number || number <= 0) {
+                errorDiv.innerHTML = '<div class="error-message">Please enter a number greater than 0</div>';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Clear error if valid
+            errorDiv.innerHTML = '';
+            errorDiv.style.display = 'none';
+
+            // Compute the complete Collatz sequence
+            const sequence = calculateCollatz(number);
+
+            // Look for intersection with known wormhole data
+            const collatzKeys = Object.keys(DICTIONARY).map(k => parseInt(k));
+            let entrypoint = null;
+            let entrypointIndex = -1;
+
+            // Find first value that exists in our precomputed dictionary
+            for (let i = 0; i < sequence.length; i++) {
+                if (collatzKeys.includes(sequence[i])) {
+                    entrypoint = sequence[i];
+                    entrypointIndex = i;
+                    break;
+                }
+            }
+
+            if (entrypoint) {
+                // Successfully found wormhole intersection
+                const result = {
+                    number: number,
+                    sequence: sequence,
+                    entrypoint: entrypoint,           // First dictionary value encountered
+                    entrypointIndex: entrypointIndex  // Position where wormhole begins
+                };
+
+                // Update global state and visualization
+                processedResults.push(result);
+                currentResultIndex = processedResults.length - 1;
+                visualizeUserSequence();
+                currentSequenceIndex = 0;
+                highlightCurrentSphere();
+                updateProcessedInfo();
+            } else {
+                // No intersection found: this should never happend
+                errorDiv.innerHTML = `<div class="error-message">⚠️ Number ${number} does not intersect with any known wormhole</div>`;
+                errorDiv.style.display = 'block';
+            }
+            input.value = '';
+        }
+
+        /**
+         * Calculates the taxonomic type (A, B or C) of a Collatz sequence
+         * 
+         * Classification is based on the Tuple-based Transform theory:
+         * - Type A: Maximum occurs BEFORE the pseudocycle (before Entry Point)
+         * - Type B: Maximum occurs WITHIN the pseudocycle (between Entry Point and Exiting Point)
+         * - Type C: Maximum occurs AFTER the pseudocycle  (after Exiting Point)
+         * 
+         * This classification reveals geometric patterns in Collatz behavior
+         * and helps predict convergence characteristics according to the research framework.
+         * 
+         * @param {Array<number>} sequence - Complete Collatz sequence
+         * @param {number} entrypoint - The wormhole entry value
+         * @returns {string} Classification: 'A', 'B' or 'C'
+         * 
+         * @example
+         * // For sequence [7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
+         * // with entry point at 16 (standard cycle beginning)
+         * calculateSequenceType(sequence, 16) // returns 'A' (max 52 occurs before pseudocycle)
+         */
+        function calculateSequenceType(sequence, entrypoint) {
+            const collatzData = DICTIONARY[entrypoint.toString()];
+
+            // Safety check for valid dictionary data
+            if (!collatzData || !collatzData.pseudocycle || collatzData.pseudocycle.length < 2) {
+                return "a";
+            }
+
+            let maxValue = Math.max(...sequence);
+            let maxIndex = sequence.indexOf(maxValue);
+         
+            const firstPseudoValue = collatzData.pseudocycle[0];
+            const secondPseudoValue = collatzData.pseudocycle[1];
+            let firstPseudoPosition = sequence.indexOf(firstPseudoValue);
+            let secondPseudoPosition = sequence.indexOf(secondPseudoValue);
+            
+            // This is the implementation logic:
+            if (firstPseudoPosition === -1 || secondPseudoPosition === -1) {
+                return "a"; // Type A: Maximum before the pseudocycle
+            }
+            if (maxIndex < firstPseudoPosition) {
+                return "a"; // Type A: Maximum before the pseudocycle
+            } else if (firstPseudoPosition <= maxIndex && maxIndex < secondPseudoPosition) {
+                return "b"; // Type B: Maximum within pseudocycle
+            } else {
+                return "c"; // Type C: Maximum after the pseudocycle
+            }
+        }
+
+        /* *******************************************************************************************************************
+         * 3D VISUALIZATION FUNCTIONS - THE COLLATZ AMPHORA
+         * *******************************************************************************************************************
+         * This section handles the creation and management of the 3D amphora structure,
+         * sphere placement and visual rendering using Three.js.
+         */
+
+        /**
+         * Initializes the Three.js scene and sets up the complete 3D environment
+         * 
+         * Creates the scene, camera, renderer and sets up all the necessary
+         * components for the amphora visualization including lighting, mouse controls
+         * and the main visualization structure.
+         * 
+         * @returns {void} Initializes global Three.js objects and starts animation loop
+         */
+        function init() {
+            // Create the main Three.js scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x222222);
+
+            // Set up perspective camera with optimal viewing angle
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 60);
+            camera.lookAt(0, 10, 0);
+
+            // Create WebGL renderer with antialiasing for smooth edges
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Build the visualization and add interactive controls
+            createVisualization();
+            addLights();
+            setupMouseControls();
+
+            // Set up responsive design and start rendering loop
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        /**
+         * Creates the complete amphora visualization structure
+         * 
+         * This is the main function that builds the entire 3D amphora:
+         * 1. Creates sphere groups for organization
+         * 2. Generates convergence points (base of amphora)
+         * 3. Creates master curves (42 Bézier paths forming amphora shape)
+         * 4. Places spheres along each curve representing wormhole sequences
+         * 5. Applies color coding and adds to scene
+         * 
+         * @returns {void} Updates scene with complete amphora structure
+         */
+        function createVisualization() {
+            // Clean up existing visualization if present
+            if (spheresGroup) scene.remove(spheresGroup);
+            if (extensionsGroup) scene.remove(extensionsGroup);
+
+            // Create groups for organizing spheres
+            spheresGroup = new THREE.Group();     // Base amphora structure
+            extensionsGroup = new THREE.Group();  // User-input sequence overlays
+
+            // Get the 42 wormhole keys from the precomputed dictionary
+            const collatzKeys = Object.keys(DICTIONARY);
+            const totalApothems = Object.keys(DICTIONARY).length; // Should be 42
+
+            // Build the geometric structure of the amphora
+            createConvergencePoints(collatzKeys, totalApothems);
+            createMasterCurves(totalApothems);
+
+            // Place spheres along each of the 42 curves
+            for (let i = 0; i < collatzKeys.length; i++) {
+                const key = collatzKeys[i];
+                const sequence = DICTIONARY[key].wormhole;
+                const masterCurve = masterCurves[i];
+                placeSpheres(i, key, sequence, masterCurve);
+            }
+
+            // Apply final color scheme and rotations
+            applyFinalColors();
+            updateRotation();
+
+            // Add groups to the scene
+            scene.add(spheresGroup);
+            scene.add(extensionsGroup);
+        }
+        
+        /**
+         * Sets up the lighting system for optimal 3D sphere visualization
+         * 
+         * Creates a three-light setup that ensures the amphora spheres are
+         * clearly visible from all angles with proper depth perception and
+         * color differentiation. The lighting scheme is carefully balanced
+         * to highlight the mathematical color coding while maintaining
+         * excellent visual clarity for the 3D structure.
+         * 
+         * @returns {void} Adds three light sources to the scene
+         */        
+        function addLights() {
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.5, 100);
+            pointLight.position.set(-5, 5, -5);
+            scene.add(pointLight);
+        }
+
+        /**
+         * Creates the convergence points that form the base of the amphora
+         * 
+         * These points represent where all Collatz sequences eventually converge.
+         * They are arranged in a circle at the bottom of the amphora and serve
+         * as starting points for the 42 master curves.
+         * 
+         * @param {Array<string>} collatzKeys - Keys from the DICTIONARY (42 values)
+         * @param {number} totalApothems - Total number of curves (should be 42)
+         * @returns {void} Updates global convergencePoints array
+         */
+        function createConvergencePoints(collatzKeys, totalApothems) {
+            const convergenceCircleRadius = 1.4; // Radius of the base circle
+            const convergenceY = -14;            // Y position (bottom of amphora)
+    
+            convergencePoints = [];
+
+            // Distribute points evenly around a circle
+            for (let i = 0; i < totalApothems; i++) {
+                const angle = (i / totalApothems) * Math.PI * 2; // Evenly spaced angles
+                const x = Math.cos(angle) * convergenceCircleRadius;
+                const z = Math.sin(angle) * convergenceCircleRadius;
+                const convergencePoint = new THREE.Vector3(x, convergenceY, z);
+                convergencePoints.push(convergencePoint);
+            }
+        }
+
+        /**
+         * Creates the 42 master curves that define the amphora shape
+         * 
+         * Each curve is a complex Bézier path that represents one "wormhole" trajectory.
+         * The curves collectively form the characteristic amphora shape:
+         * - Pinnacle: Narrow bottom section
+         * - Melon: Wide middle section (main body)
+         * - Cylinder: Extended top section
+         * 
+         * The amphora metaphor: like ancient Greek vessels that stored treasures,
+         * this mathematical amphora contains the rules governing Collatz behavior.
+         * 
+         * @param {number} totalApothems - Number of curves to create (42)
+         * @returns {void} Updates global masterCurves array
+         */
+        function createMasterCurves(totalApothems) {
+            masterCurves = [];
+
+            for (let i = 0; i < totalApothems; i++) {
+                const angle = (i / totalApothems) * Math.PI * 2;
+
+                // Starting point at convergence circle
+                const startX = Math.cos(angle) * convergencePoints[0].x;
+                const startY = convergencePoints[0].y;
+                const startZ = Math.sin(angle) * convergencePoints[0].x;
+
+                // Amphora shape parameters
+                const maxRadius = 9.0;                // Maximum width of amphora
+                const melonHeight = 24.0;             // Height of main body
+                const melonCenter = startY + 12.0 + melonHeight/2;
+                const cylinderRadius = 3.0;           // Radius of top cylinder
+                const extendedCylinderHeight = 200.0; // Height of extended top
+                const pinnacleHeight = 12.0;          // Height of bottom section
+        
+                // Create the four sections of each curve using Cubic Bézier curves
+
+                // 1. Pinnacle curve: Narrow bottom section
+                const pinnacleCurve = new THREE.CubicBezierCurve3(
+                    new THREE.Vector3(startX, startY, startZ),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * 1.5, startY + pinnacleHeight * 0.3, Math.sin(angle) * convergencePoints[0].x * 1.5),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * 4.0, startY + pinnacleHeight * 0.7, Math.sin(angle) * convergencePoints[0].x * 4.0),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * 6.0, startY + pinnacleHeight, Math.sin(angle) * convergencePoints[0].x * 6.0)
+                );
+                
+                // 2. Melon curve: Main body of amphora (widest section)
+                const melonCurve = new THREE.CubicBezierCurve3(
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * 6.0, startY + pinnacleHeight, Math.sin(angle) * convergencePoints[0].x * 6.0),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * (maxRadius * 0.85), melonCenter - melonHeight * 0.25, Math.sin(angle) * convergencePoints[0].x * (maxRadius * 0.85)),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * maxRadius, melonCenter, Math.sin(angle) * convergencePoints[0].x * maxRadius),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * (maxRadius * 0.85), melonCenter + melonHeight * 0.25, Math.sin(angle) * convergencePoints[0].x * (maxRadius * 0.85))
+                );
+                
+                // 3. Melon top curve: Transition from wide body to narrow neck
+                const melonTopCurve = new THREE.CubicBezierCurve3(
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * (maxRadius * 0.85), melonCenter + melonHeight * 0.25, Math.sin(angle) * convergencePoints[0].x * (maxRadius * 0.85)),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * (maxRadius * 0.6), melonCenter + melonHeight * 0.4, Math.sin(angle) * convergencePoints[0].x * (maxRadius * 0.6)),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * cylinderRadius, startY + pinnacleHeight + melonHeight * 0.9, Math.sin(angle) * convergencePoints[0].x * cylinderRadius),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * cylinderRadius, startY + pinnacleHeight + melonHeight, Math.sin(angle) * convergencePoints[0].x * cylinderRadius)
+                );
+                
+                // 4. Cylinder curve: Extended top section for long sequences
+                const cylinderCurve = new THREE.CubicBezierCurve3(
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * cylinderRadius, startY + pinnacleHeight + melonHeight, Math.sin(angle) * convergencePoints[0].x * cylinderRadius),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * cylinderRadius, startY + pinnacleHeight + melonHeight + extendedCylinderHeight * 0.25, Math.sin(angle) * convergencePoints[0].x * cylinderRadius),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * cylinderRadius, startY + pinnacleHeight + melonHeight + extendedCylinderHeight * 0.75, Math.sin(angle) * convergencePoints[0].x * cylinderRadius),
+                    new THREE.Vector3(Math.cos(angle) * convergencePoints[0].x * cylinderRadius, startY + pinnacleHeight + melonHeight + extendedCylinderHeight, Math.sin(angle) * convergencePoints[0].x * cylinderRadius)
+                );
+                
+                // Combine all curve sections into one smooth master curve
+                const pinnaclePoints = pinnacleCurve.getPoints(40);
+                const melonPoints = melonCurve.getPoints(60);
+                const melonTopPoints = melonTopCurve.getPoints(40);
+                const cylinderPoints = cylinderCurve.getPoints(100);
+                
+                // Concatenate points, avoiding duplicates at connections
+                const allPoints = [...pinnaclePoints, ...melonPoints.slice(1), ...melonTopPoints.slice(1), ...cylinderPoints.slice(1)];
+                const masterCurve = new THREE.CatmullRomCurve3(allPoints);
+                masterCurve.tension = 0.5; // Smoothness parameter
+
+                masterCurves.push(masterCurve);
+            }
+        }
+        
+        /**
+         * Places spheres along a master curve representing a Collatz sequence
+         * 
+         * Each sphere represents one number in a wormhole sequence. Spheres are
+         * evenly spaced along the curve using arc-length parameterization for
+         * consistent visual spacing regardless of curve complexity.
+         * 
+         * @param {number} apotemIndex - Index of the curve (0-41)
+         * @param {string} key - Dictionary key for this wormhole
+         * @param {Array<number>} sequence - Complete wormhole sequence
+         * @param {THREE.CatmullRomCurve3} masterCurve - The curve to place spheres on
+         * @returns {void} Adds spheres to the spheresGroup
+         */
+        function placeSpheres(apotemIndex, key, sequence, masterCurve) {
+            const sphereGeometry = new THREE.SphereGeometry(sphereSize, 8, 6);
+
+            // Get evenly distributed points along the curve (high resolution)
+            const curvePoints = masterCurve.getPoints(3000);
+
+            // Calculate cumulative distances for arc-length parameterization
+            const pointDistances = [0];
+            let totalLength = 0;
+            for (let j = 1; j < curvePoints.length; j++) {
+                totalLength += curvePoints[j].distanceTo(curvePoints[j-1]);
+                pointDistances.push(totalLength);
+            }
+            const fullSequence = sequence;
+            const numSpheres = fullSequence.length;
+            const maxAllowedDistance = totalLength * 0.95;  // Stay within curve bounds
+            const positions = [];
+            
+            // Calculate sphere positions using uniform spacing
+            for (let j = 0; j < numSpheres; j++) {
+                const targetDistance = j * STANDARD_SPHERE_SPACING;
+                if (targetDistance > maxAllowedDistance) break;
+                
+                // Binary search to find closest curve point
+                let left = 0;
+                let right = pointDistances.length - 1;
+                let pointIndex = 0;
+                while (left <= right) {
+                    const mid = Math.floor((left + right) / 2);
+                    if (pointDistances[mid] < targetDistance) {
+                        left = mid + 1;
+                    } else {
+                        pointIndex = mid;
+                        right = mid - 1;
+                    }
+                }
+                
+                // Interpolate between curve points for exact positioning
+                let position;
+                if (pointIndex > 0) {
+                    const prevDist = pointDistances[pointIndex - 1];
+                    const nextDist = pointDistances[pointIndex];
+                    const ratio = (targetDistance - prevDist) / (nextDist - prevDist);
+                    const prevPoint = curvePoints[pointIndex - 1];
+                    const nextPoint = curvePoints[pointIndex];
+                    position = prevPoint.clone().lerp(nextPoint, ratio);
+                } else {
+                    position = curvePoints[pointIndex].clone();
+                }
+                positions.push(position);
+            }
+            
+            // Create spheres at calculated positions
+            for (let j = 0; j < positions.length; j++) {
+                const sequenceIndex = fullSequence.length - 1 - j; // Reverse order for proper flow
+                const value = fullSequence[sequenceIndex];
+                const material = new THREE.MeshPhongMaterial({ color: SPHERE_COLORS.GREEN });
+                const sphere = new THREE.Mesh(sphereGeometry, material);
+                sphere.position.copy(positions[j]);
+
+                // Store metadata for interaction and coloring
+                sphere.userData = { 
+                    value: value, 
+                    apotemIndex: apotemIndex, 
+                    sequenceIndex: sequenceIndex,
+                    isOne: (value === 1), // Special case for final value
+                    baseColor: SPHERE_COLORS.GREEN
+                };
+
+                spheresGroup.add(sphere);
+            }
+        }
+
+        /**
+         * Visualizes the user's input sequence on the amphora structure
+         * 
+         * When a user inputs a number, this function creates spheres that
+         * show the computed sequence overlaid on the existing amphora structure.
+         * The spheres follow the same curve as the corresponding wormhole and
+         * are colored according to their mathematical properties (computed,
+         * dictionary, pseudocycle or final values).
+         * 
+         * @returns {void} Updates extensionsGroup with new sequence spheres
+         */
+        
+        function visualizeUserSequence() {
+            extensionsGroup.clear(); // Remove any existing user sequence
+
+            const result = processedResults[currentResultIndex];
+            const collatzKeys = Object.keys(DICTIONARY);
+            const apotemIndex = collatzKeys.indexOf(result.entrypoint.toString());
+
+            if (apotemIndex >= 0) {
+                const masterCurve = masterCurves[apotemIndex];
+                const maxValue = Math.max(...result.sequence);
+                const maxValueIndex = result.sequence.indexOf(maxValue);
+
+                // Use the same curve parameterization as base spheres
+                const curvePoints = masterCurve.getPoints(3000);
+                const pointDistances = [0];
+                let totalLength = 0;
+                for (let j = 1; j < curvePoints.length; j++) {
+                    totalLength += curvePoints[j].distanceTo(curvePoints[j-1]);
+                    pointDistances.push(totalLength);
+                }
+                
+                // Create sphere for each value in user sequence
+                for (let i = 0; i < result.sequence.length; i++) {
+                    const targetDistance = i * STANDARD_SPHERE_SPACING;
+                    if (targetDistance > totalLength) break;
+                    
+                    // Same positioning algorithm as placeSpheres
+                    let left = 0;
+                    let right = pointDistances.length - 1;
+                    let pointIndex = 0;
+
+                    while (left <= right) {
+                        const mid = Math.floor((left + right) / 2);
+                        if (pointDistances[mid] < targetDistance) {
+                            left = mid + 1;
+                        } else {
+                            pointIndex = mid;
+                            right = mid - 1;
+                        }
+                    }
+                    
+                    let position;
+
+                    if (pointIndex > 0) {
+                        const prevDist = pointDistances[pointIndex - 1];
+                        const nextDist = pointDistances[pointIndex];
+                        const ratio = (targetDistance - prevDist) / (nextDist - prevDist);
+                        const prevPoint = curvePoints[pointIndex - 1];
+                        const nextPoint = curvePoints[pointIndex];
+                        position = prevPoint.clone().lerp(nextPoint, ratio);
+                    } else {
+                        position = curvePoints[pointIndex].clone();
+                    }
+                    
+                    const value = result.sequence[result.sequence.length - 1 - i];
+                    const sequenceIndex = result.sequence.length - 1 - i;
+                    const isMaxValue = (sequenceIndex === maxValueIndex);
+
+                    // Make maximum value sphere larger for emphasis
+                    const sphereRadius = isMaxValue ? sphereSize * 2.5 : sphereSize;
+                    const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 8, 6);
+                    const material = new THREE.MeshPhongMaterial({ color: SPHERE_COLORS.GREEN });
+                    const sphere = new THREE.Mesh(sphereGeometry, material);
+                    sphere.position.copy(position);
+
+                    // Store comprehensive metadata for user sequences
+                    sphere.userData = { 
+                        value: value,
+                        apotemIndex: apotemIndex,
+                        sequenceIndex: sequenceIndex,
+                        isComputed: sequenceIndex < result.entrypointIndex,
+                        isMaxValue: isMaxValue,
+                        baseColor: SPHERE_COLORS.GREEN
+                    };
+
+                    extensionsGroup.add(sphere);
+                }
+
+                // Apply color coding based on sequence properties
+                applySequenceColors(result);
+                adjustCameraForSequence(result);
+            }
+        }
+        
+        /**
+         * Applies color coding to spheres based on Collatz sequence properties
+         * 
+         * Color scheme:
+         * - White: The final value (1)
+         * - Orange: Computed values (before wormhole entry)
+         * - Red: Pseudocycle values (repeating pattern)
+         * - Green: Dictionary values (wormhole data)
+         * 
+         * @param {Object} result - Processed sequence result with entrypoint info
+         * @returns {void} Updates sphere materials with appropriate colors
+         */
+        function applySequenceColors(result) {
+            const collatzData = DICTIONARY[result.entrypoint.toString()];
+            for (const sphere of extensionsGroup.children) {
+                if (sphere.userData) {
+                    const value = sphere.userData.value;
+                    const isComputed = sphere.userData.isComputed;
+                    let finalColor;
+
+                    if (value === 1) {
+                        finalColor = SPHERE_COLORS.WHITE;  // Final convergence value
+                    } else if (isComputed) {
+                        finalColor = SPHERE_COLORS.ORANGE; // Computed values
+                    } else if (collatzData && collatzData.pseudocycle.includes(value)) {
+                        finalColor = SPHERE_COLORS.RED;    // Pseudocycle values
+                    } else {
+                        finalColor = SPHERE_COLORS.GREEN;  // Precomputed values (dictionary)
+                    }
+
+                    sphere.material.color.setHex(finalColor);
+                    sphere.userData.baseColor = finalColor;
+                }
+            }
+        }
+        
+        /**
+         * Applies final color scheme to the base amphora structure
+         * 
+         * Sets the default colors for all spheres in the main amphora based on
+         * their mathematical significance in the wormhole sequences.
+         * 
+         * @returns {void} Updates sphere colors in spheresGroup
+         */
+        function applyFinalColors() {
+            const collatzKeys = Object.keys(DICTIONARY);
+            for (const sphere of spheresGroup.children) {
+                if (sphere.userData) {
+                    const apotemIndex = sphere.userData.apotemIndex;
+                    const value = sphere.userData.value;
+                    const key = collatzKeys[apotemIndex];
+                    const collatzData = DICTIONARY[key];
+
+                    let finalColor = SPHERE_COLORS.GREEN; // Precomputed values (dictionary)
+                    if (sphere.userData.isOne) {
+                        finalColor = SPHERE_COLORS.WHITE; // Final convergence value
+                    } else if (collatzData && collatzData.pseudocycle.includes(value)) {
+                        finalColor = SPHERE_COLORS.RED;   // Pseudocycle values
+
+                    }
+                    sphere.material.color.setHex(finalColor);
+                    sphere.userData.baseColor = finalColor;
+                }
+            }
+        }
+
+        /* *******************************************************************************************************************
+         * ANIMATION FUNCTIONS - THE COLLATZ AMPHORA
+         * *******************************************************************************************************************
+         * This section handles all animation, highlighting, rotation and camera
+         * movement functionality for the interactive 3D visualization.
+         */
+
+        /**
+         * Main animation loop using requestAnimationFrame
+         * 
+         * This is the core rendering loop that continuously updates the display.
+         * It runs at the browser's refresh rate (typically 60fps) and renders
+         * the scene with the current camera position and object states.
+         * 
+         * @returns {void} Continuous rendering loop
+         */
+        function animate() {
+            requestAnimationFrame(animate); // Schedule next frame
+            renderer.render(scene, camera); // Render current frame
+        }
+
+        /**
+         * Updates the rotation of both sphere groups based on current rotation values
+         * 
+         * Applies the same rotation transformations to both the base amphora structure
+         * (spheresGroup) and any user sequence overlays (extensionsGroup) to keep
+         * them synchronized during rotation operations.
+         * 
+         * @returns {void} Updates rotation of 3D groups
+         */
+        function updateRotation() {
+            if (spheresGroup) {
+                spheresGroup.rotation.x = rotationX;
+                spheresGroup.rotation.y = rotationY;
+                spheresGroup.rotation.z = rotationZ;
+            }
+            if (extensionsGroup) {
+                extensionsGroup.rotation.x = rotationX;
+                extensionsGroup.rotation.y = rotationY;
+                extensionsGroup.rotation.z = rotationZ;
+            }
+        }
+
+        /**
+         * Rotates the amphora around the X-axis by the specified amount
+         * 
+         * X-axis rotation tilts the amphora forward/backward, allowing users
+         * to view it from different vertical angles.
+         * 
+         * @param {number} delta - Rotation amount in radians (positive = forward tilt)
+         * @returns {void} Updates rotationX and applies rotation
+         */
+        function rotateX(delta) {
+            rotationX += delta;
+            updateRotation();
+        }
+        
+        /**
+         * Rotates the amphora around the Y-axis by the specified amount
+         * 
+         * Y-axis rotation spins the amphora left/right, allowing users to
+         * view different sides and see the circular arrangement of the 42 curves.
+         * 
+         * @param {number} delta - Rotation amount in radians (positive = clockwise)
+         * @returns {void} Updates rotationY and applies rotation
+         */
+        function rotateY(delta) {
+            rotationY += delta;
+            updateRotation();
+        }
+        
+        /**
+         * Rotates the amphora around the Z-axis by the specified amount
+         * 
+         * Z-axis rotation rolls the amphora clockwise/counterclockwise,
+         * providing additional viewing angles for detailed inspection.
+         * 
+         * @param {number} delta - Rotation amount in radians (positive = clockwise roll)
+         * @returns {void} Updates rotationZ and applies rotation
+         */
+        function rotateZ(delta) {
+            rotationZ += delta;
+            updateRotation();
+        }
+        
+        /**
+         * Resets the camera and rotation to default viewing position
+         * 
+         * Returns the amphora to its initial orientation and camera position,
+         * providing a consistent starting point for exploration. The default
+         * Y rotation of π/4 provides an optimal viewing angle.
+         * 
+         * @returns {void} Resets all rotation values and camera position
+         */
+        function resetRotation() {
+            rotationX = 0;
+            rotationY = Math.PI / 4;
+            rotationZ = 0;
+            camera.position.set(0, 10, 60);
+            camera.lookAt(0, 10, 0);
+            updateRotation();
+        }
+
+        /**
+         * Highlights the currently selected sphere in the sequence
+         * 
+         * This function provides visual feedback by highlighting the sphere
+         * corresponding to the current step in the Collatz sequence. It:
+         * 1. Removes highlighting from the previously selected sphere
+         * 2. Finds the sphere for the current sequence index
+         * 3. Changes its color to yellow and adds emissive glow
+         * 4. Scrolls the sequence display to keep the current value visible
+         * 
+         * @returns {void} Updates sphere highlighting and UI scroll position
+         */
+        function highlightCurrentSphere() {
+            if (currentHighlightedSphere) {
+                currentHighlightedSphere.material.color.setHex(currentHighlightedSphere.userData.baseColor);
+                currentHighlightedSphere.material.emissive.setHex(0x000000); // Remove glow
+                currentHighlightedSphere = null;
+            }
+
+            // Find and highlight the current sphere
+            if (currentResultIndex >= 0) {
+                const result = processedResults[currentResultIndex];
+                for (const sphere of extensionsGroup.children) {
+                    if (sphere.userData && sphere.userData.sequenceIndex === currentSequenceIndex) {
+                        currentHighlightedSphere = sphere;
+                        sphere.material.color.setHex(SPHERE_COLORS.YELLOW); // Bright yellow highlight
+                        sphere.material.emissive.setHex(0x222200);          // Subtle yellow glow
+                        break;
+                    }
+                }
+            }
+            
+            // Auto-scroll the sequence display to keep current element visible
+            setTimeout(() => {
+                const sequenceDisplay = document.getElementById('sequenceDisplay');
+                const currentElement = sequenceDisplay.querySelector('.seq-current');
+                if (currentElement && sequenceDisplay) {
+                    const containerRect = sequenceDisplay.getBoundingClientRect();
+                    const elementRect = currentElement.getBoundingClientRect();
+                    
+                    const isAbove = elementRect.top < containerRect.top;
+                    const isBelow = elementRect.bottom > containerRect.bottom;
+                    
+                    if (isAbove || isBelow) {
+                        currentElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                    }
+                }
+            }, 50);
+        }
+
+        /**
+         * Moves to the previous step in the current Collatz sequence
+         * 
+         * Allows users to step backward through the sequence, updating
+         * both the 3D highlighting and the sequence information display.
+         * 
+         * @returns {void} Updates current sequence position and UI
+         */
+        function previous() {
+            if (processedResults.length === 0) return;
+            if (currentSequenceIndex > 0) {
+                currentSequenceIndex--;
+                highlightCurrentSphere();
+                updateProcessedInfo();
+            }
+        }
+
+        /**
+         * Moves to the next step in the current Collatz sequence
+         * 
+         * Allows users to step forward through the sequence, updating
+         * both the 3D highlighting and the sequence information display.
+         * 
+         * @returns {void} Updates current sequence position and UI
+         */
+        function next() {
+            if (processedResults.length === 0) return;
+            if (currentSequenceIndex < processedResults[currentResultIndex].sequence.length - 1) {
+                currentSequenceIndex++;
+                highlightCurrentSphere();
+                updateProcessedInfo();
+            }
+        }
+
+        /**
+         * Adjusts camera position to optimally frame the current sequence
+         * 
+         * Automatically calculates the best camera distance and position based on
+         * the vertical extent of the current sequence. This ensures that sequences
+         * of different lengths are always well-framed in the viewport.
+         * 
+         * @param {Object} result - Processed sequence result with sphere positions
+         * @returns {void} Updates camera position for optimal viewing
+         */
+        
+        function adjustCameraForSequence(result) {
+            let minY = Infinity;
+            let maxY = -Infinity;
+
+            // Calculate vertical bounds of all visible spheres
+            if (extensionsGroup && extensionsGroup.children.length > 0) {
+                for (const sphere of extensionsGroup.children) {
+                    minY = Math.min(minY, sphere.position.y);
+                    maxY = Math.max(maxY, sphere.position.y);
+                }
+            }
+
+            // Fallback bounds if no spheres found
+            if (minY === Infinity) {
+                minY = -15;
+                maxY = 50;
+            }
+
+            // Calculate optimal camera distance
+            const totalRealHeight = maxY - minY;
+            const centerY = (minY + maxY) / 2;
+            const safetyFactor = 1.3; // Extra space for comfortable viewing
+            const optimalDistance = totalRealHeight * safetyFactor;
+
+            // Clamp distance to reasonable bounds
+            const minDistance = 25;
+            const maxDistance = 150;
+            const finalDistance = Math.max(minDistance, Math.min(maxDistance, optimalDistance));
+            
+            // Maintain rotation angle but adjust distance
+            const currentAngle = rotationY;
+            camera.position.set(
+                Math.cos(currentAngle) * finalDistance,
+                centerY,
+                Math.sin(currentAngle) * finalDistance
+            );
+            camera.lookAt(0, centerY, 0);
+        }
+        
+        /**
+         * Zooms the camera in by moving it closer to the amphora
+         * 
+         * Reduces the camera distance by 10% while maintaining the current
+         * viewing angle. Includes bounds checking to prevent getting too close.
+         * 
+         * @returns {void} Updates camera position
+         */
+        function zoomIn() {
+            const zoomFactor = 0.9; // Move 10% closer
+            camera.position.multiplyScalar(zoomFactor);
+
+            // Prevent getting too close (minimum distance = 2 units)
+            const distance = camera.position.length();
+            if (distance < 2) {
+                camera.position.normalize().multiplyScalar(2);
+            }
+        }
+
+        /**
+         * Zooms the camera out by moving it away from the amphora
+         * 
+         * Increases the camera distance by 10% while maintaining the current
+         * viewing angle. Includes bounds checking to prevent going too far.
+         * 
+         * @returns {void} Updates camera position
+         */
+        function zoomOut() {
+            const zoomFactor = 1.1; // Move 10% further
+            camera.position.multiplyScalar(zoomFactor);
+
+            // Prevent going too far (maximum distance = 100 units)
+            const distance = camera.position.length();
+            if (distance > 100) {
+                camera.position.normalize().multiplyScalar(100);
+            }
+        }
+
+        /**
+         * Updates the rotation of both sphere groups based on current rotation values
+         * 
+         * This function synchronizes the rotation state across all 3D objects in the amphora.
+         * It applies the current rotationX, rotationY and rotationZ values to both:
+         * 
+         * 1. spheresGroup - The base amphora structure (42 precomputed wormhole sequences)
+         * 2. extensionsGroup - User-input sequence overlays
+         * 
+         * By applying the same rotation to both groups, the visualization maintains
+         * spatial coherence between the static amphora structure and dynamic user sequences.
+         * This ensures that when users rotate the view, both the base structure and any
+         * overlaid sequences move together as a unified whole.
+         * 
+         * @returns {void} Updates rotation properties of 3D groups
+         */
+        function updateProcessedInfo() {
+            const sequenceElement = document.getElementById('sequenceDisplay');
+            const dataPanelContent = document.getElementById('dataPanelContent');        
+            const result = processedResults[currentResultIndex];
+            const collatzData = DICTIONARY[result.entrypoint.toString()];
+            const maxValue = Math.max(...result.sequence);
+            const sequenceType = calculateSequenceType(result.sequence, result.entrypoint);
+            const currentValue = result.sequence[currentSequenceIndex];
+            
+            const computedValues = result.entrypointIndex;
+            const savedValues = result.sequence.length - result.entrypointIndex - 1;
+            const steps = result.sequence.length - 1;
+            
+            const maxValueIndex = result.sequence.indexOf(maxValue);
+            const isMaxComputed = maxValueIndex < result.entrypointIndex;
+            const maxColorClass = isMaxComputed ? 'seq-computed' : 'seq-dictionary';
+
+            const titleElement = document.querySelector('.info-title');
+            if (collatzData) {
+                titleElement.textContent = `Collatz Sequence for n = ${result.number}`;
+            } else {
+                titleElement.textContent = 'Collatz Sequence';
+            }
+            
+            let sequenceHTML = '';
+            for (let i = 0; i < result.sequence.length; i++) {
+                const value = result.sequence[i];
+                let cssClass = '';
+                let isCurrentValue = (i === currentSequenceIndex);
+                let isMaxValue = (value === maxValue);
+                
+                if (value === 1) {
+                    cssClass = 'seq-one';
+                } else if (i < result.entrypointIndex) {
+                    cssClass = 'seq-computed';
+                } else if (collatzData && collatzData.pseudocycle.includes(value)) {
+                    cssClass = 'seq-pseudocycle';
+                } else {
+                    cssClass = 'seq-dictionary';
+                }
+                
+                if (isMaxValue) {
+                    cssClass += ' seq-max';
+                }
+                if (isCurrentValue) {
+                    cssClass += ' seq-current';
+                }
+                
+                sequenceHTML += `<span class="${cssClass}">${value}</span>`;
+                if (i < result.sequence.length - 1) {
+                    sequenceHTML += ' → ';
+                }
+            }
+            sequenceHTML += `
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.85em; color: #999; text-align: center;">
+                    <p style="margin: 5px 0;"><strong>Author:</strong> Javier Hernandez | <strong>Email:</strong> 271314@pm.me</p>
+                    <p style="margin: 5px 0;">
+                        <a href="https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/tree/main/step06-the-collatz-amphora" target="_blank" style="color: #667eea; text-decoration: none;">Go To GitHub Repository</a> | 
+                        <a href="https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/blob/main/LICENSE" target="_blank" style="color: #667eea; text-decoration: none;">License</a> | 
+                        <a href="https://doi.org/10.5281/zenodo.15546925" target="_blank" style="color: #667eea; text-decoration: none;">Research Reference</a>
+                    </p>
+                </div>
+            `;
+            sequenceElement.innerHTML = sequenceHTML;
+            
+            let infoPanelHTML = '';
+
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">n</div>';
+            infoPanelHTML += `<div class="info-value n-value">${result.number}</div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">mr Class</div>';
+            infoPanelHTML += `<div class="info-value mr-value">${collatzData.mr}</div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Pseudocycle Ends</div>';
+            infoPanelHTML += `<div class="info-value pseudocycle-value">[${collatzData.pseudocycle.join(', ')}]</div>`;
+            infoPanelHTML += '</div>';
+
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Number of Elements</div>';
+            infoPanelHTML += `<div class="info-value elements-value">${result.sequence.length}</div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Total Steps</div>';
+            infoPanelHTML += `<div class="info-value steps-value">${steps}</div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Computed Steps</div>';
+            infoPanelHTML += `<div class="info-value computed-value">${computedValues}</div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Saved Steps</div>';
+            infoPanelHTML += `<div class="info-value saved-value">${savedValues}</div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Max Value</div>';
+            infoPanelHTML += `<div class="info-value max-value"><span class="max-value-highlight ${maxColorClass}">${maxValue}</span></div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Sequence Type</div>';
+            infoPanelHTML += `<div class="info-value"><span class="type-indicator type-${sequenceType.toLowerCase()}">${sequenceType.toUpperCase()}</span></div>`;
+            infoPanelHTML += '</div>';
+            
+            infoPanelContent.innerHTML = infoPanelHTML;
+        }
+        
+        /* *******************************************************************************************************************
+         * UI CONTROL FUNCTIONS - THE COLLATZ AMPHORA
+         * *******************************************************************************************************************
+         * This section handles all user interface controls including modal windows,
+         * information panels, mouse/keyboard interactions and state management.
+         */
+
+        /**
+         * Shows the color legend modal explaining sphere color meanings
+         * 
+         * The legend modal provides essential information for understanding
+         * the color-coded visualization system used throughout the amphora.
+         * 
+         * @returns {void} Makes legend modal visible
+         */
+        function showLegend() {
+            document.getElementById('legendModal').style.display = 'block';
+        }
+
+        /**
+         * Hides the color legend modal
+         * 
+         * @returns {void} Hides legend modal
+         */
+        function hideLegend() {
+            document.getElementById('legendModal').style.display = 'none';
+        }
+       
+        /**
+         * Sets up mouse controls for 3D camera manipulation
+         * 
+         * Implements intuitive mouse controls for exploring the amphora:
+         * - Mouse drag: Rotates the view around the amphora
+         * - Mouse wheel: Zooms in/out with distance constraints
+         * - Smooth interaction with proper event handling
+         * 
+         * Uses global state variables to track mouse position and drag state.
+         * 
+         * @returns {void} Attaches event listeners for mouse interaction
+         */
+        function setupMouseControls() {
+            renderer.domElement.addEventListener('mousedown', (event) => {
+                isMouseDown = true;
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            });
+            renderer.domElement.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+            renderer.domElement.addEventListener('mousemove', (event) => {
+                if (!isMouseDown) return;
+                const deltaX = event.clientX - mouseX;
+                const deltaY = event.clientY - mouseY;
+                rotationY += deltaX * 0.005;
+                rotationX += deltaY * 0.005;
+                updateRotation();
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            });
+            renderer.domElement.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                const zoomSpeed = 0.1;
+                const zoom = event.deltaY > 0 ? 1 + zoomSpeed : 1 - zoomSpeed;
+                camera.position.multiplyScalar(zoom);
+                const distance = camera.position.length();
+                if (distance < 2) {
+                    camera.position.normalize().multiplyScalar(2);
+                } else if (distance > 100) {
+                    camera.position.normalize().multiplyScalar(100);
+                }
+            });
+        }
+       
+        /* *******************************************************************************************************************
+         * UTILITY FUNCTIONS - THE COLLATZ AMPHORA
+         * *******************************************************************************************************************
+         * General utility functions for window management and browser compatibility.
+         */
+
+        /**
+         * Handles browser window resize events
+         * 
+         * Updates the camera aspect ratio and renderer size when the browser
+         * window is resized to maintain proper proportions and prevent distortion.
+         * 
+         * @returns {void} Updates camera and renderer for new window size
+         */
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /* *******************************************************************************************************************
+         * GLOBAL EVENT HANDLERS
+         * *******************************************************************************************************************
+         * These handle window-level events and modal interactions.
+         */
+
+        /**
+         * Global click handler for modal backdrop clicks
+         * 
+         * Allows users to close modals by clicking outside the content area.
+         * This provides intuitive UX behavior expected in modern web applications.
+         * 
+         * Attached to window.onclick in the global scope.
+         * 
+         * @param {Event} event - Click event object
+         * @returns {void} Closes appropriate modal if backdrop clicked
+         */
+        window.onclick = function(event) {
+            const legendModal = document.getElementById('legendModal');
+            if (event.target === legendModal) {
+                hideLegend();
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

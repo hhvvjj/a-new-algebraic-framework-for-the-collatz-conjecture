@@ -1,0 +1,1057 @@
+<!--
+/**
+ * ============================================================================
+ * THE TUPLE-BASED TRANSFORM CALCULATOR
+ * ============================================================================
+ * 
+ * A web-based tool for analyzing Collatz sequences through tuple-based 
+ * transformations. For any positive integer n and odd parameter q, this 
+ * calculator generates the Collatz sequence and transforms each consecutive 
+ * pair into parametric tuples [p, f(p), m, q], enabling alternative 
+ * representations and analysis of the Collatz conjecture.
+ * 
+ * MATHEMATICAL FOUNDATION:
+ * Based on "On the Convergence of Collatz Sequences: A New Algebraic Framework"
+ * by Javier Hernandez (2026).
+ * https://doi.org/10.5281/zenodo.15546925
+ *
+ * MAIN ALGORITHM:
+ * 1. Generate Collatz sequence: c_1, c_2, ..., c_k (until reaching 1)
+ * 2. Transform each pair (c_i, c_{i+1}) into tuple [p, f(p), m, q]
+ * 3. Extract parameter sequences {p_i} and {m_i}
+ * 4. Validate and visualize reconstruction formulas and validation
+ * 
+ * KEY FORMULAS:
+ * - Decomposition: c_i = 2qm + p
+ * - Reconstruction (p even): c_{i+1} = qm + f(p)
+ * - Reconstruction (p odd):  c_{i+1} = 6qm + f(p)
+ * 
+ * USAGE:
+ * 1. Enter positive integer n in the input field
+ * 2. Optionally adjust parameter q (default: 1)
+ * 3. Click "Process" to see the transformation
+ * 4. Review Collatz sequence, tuples and parameter sequences
+ * 
+ * AUTHOR: Javier Hernandez
+ * EMAIL: 271314@pm.me
+ * LICENSE: https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/blob/main/LICENSE
+ * REPOSITORY: https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/tree/main/step01-the-tuple-based-transform-calculator
+ * 
+ * ============================================================================
+ */
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Tuple-based Transform Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            min-height: 100vh;
+            padding: 0;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0;
+            background: transparent;
+        }
+
+        .header {
+            background: #000000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            padding: 20px 40px;
+            border-radius: 12px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            text-align: left;
+            color: #ffffff;
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 2px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .header p {
+            display: none;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-field label {
+            display: none;
+        }
+
+        .input-field input {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            width: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            transition: all 0.3s;
+            font-family: Arial, sans-serif;
+            height: 48px;
+            line-height: normal;
+        }
+
+        .input-field input:focus {
+            outline: none;
+            border-color: #7c8ef5;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .input-field small {
+            display: none;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            width: auto;
+            min-width: 120px;
+            height: 48px;
+            line-height: normal;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: none;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .results {
+            margin-top: 140px;
+            padding: 40px;
+            padding-bottom: 120px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .sequence-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            overflow-x: auto;
+            font-size: 0.95em;
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+
+        .transform-step {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .step-number {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .pair-display {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            color: #d0d0d0;
+        }
+
+        .highlight-green {
+            background: #4caf50;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .highlight-red {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .transform-process {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .test-p {
+            margin: 5px 0;
+            padding: 8px;
+            border-left: 3px solid #555;
+            padding-left: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .test-p.success {
+            border-left-color: #4caf50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .test-p.fail {
+            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+        }
+
+        .tuple-result {
+            background: rgba(33, 150, 243, 0.15);
+            padding: 12px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+            border: 2px solid #2196f3;
+            color: #64b5f6;
+        }
+
+        .reconstruction {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 5px;
+            border: 2px solid #8bc34a;
+        }
+
+        .formula {
+            font-family: 'Courier New', monospace;
+            margin: 5px 0;
+            line-height: 1.8;
+            color: #d0d0d0;
+        }
+
+        #error {
+            margin-top: 120px;
+            padding: 0 40px;
+        }
+
+        .error-message {
+            background: #7f1d1d;
+            border: 1px solid #fcc;
+            color: #fee;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #ffffff;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: rgba(33, 150, 243, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #90caf9;
+        }
+
+        .author-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            font-size: 0.9em;
+            color: #999;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .author-info a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .author-info a:hover {
+            text-decoration: underline;
+            color: #7c8ef5;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .input-section {
+                width: 100%;
+            }
+
+            .input-field input {
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .results {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>The Tuple-based Transform Calculator</h1>
+            
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="n-input">Enter n > 0</label>
+                        <input type="number" id="n-input" min="1" value="" placeholder="Enter n > 0">
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="q-input">Parameter q</label>
+                        <input type="number" id="q-input" min="1" step="2" value="1" placeholder="Parameter q">
+                    </div>
+                    
+                    <button onclick="calculate()">Process</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" style="display: none;"></div>
+
+        <div id="results" class="results"></div>
+
+        <div class="author-info">
+            <p><strong>Author:</strong> Javier Hernandez | <strong>Email:</strong> 271314@pm.me</p>
+            <a href="https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/tree/main/step01-the-tuple-based-transform-calculator" target="_blank">Go To GitHub Repository</a> | 
+            <a href="https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/blob/main/LICENSE" target="_blank">License</a> | 
+            <a href="https://doi.org/10.5281/zenodo.15546925" target="_blank">Research Reference</a></p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ALGORITHM CONFIGURATION
+         * 
+         * DEFAULT_Q: Default transformation parameter
+         * - Value: 1 (simplifies formulas for most use cases)
+         * - Theoretical: Any odd positive integer is valid
+         * - UI: User can override via input field
+         * 
+         * MAX_SEQUENCE_LENGTH: Safety limit for sequence generation
+         * - Value: 10,000 iterations
+         * - Purpose: Prevent infinite loops if sequence doesn't converge
+         * - Note: All known Collatz sequences converge well before this limit
+         * - For n < 2^68: Maximum observed stopping time ≈ 1,000
+         * - If exceeded: Throws error to prevent browser freeze
+         */
+        const CONFIG = {
+            DEFAULT_Q: 1,
+            MAX_SEQUENCE_LENGTH: 10000
+        };
+
+        /**
+         * Applies the Collatz function to a given number
+         * 
+         * @param {number} n - The input number
+         * @returns {number} - The result after applying Collatz rules
+         * 
+         * Collatz function rules:
+         * - If n is even: return n/2
+         * - If n is odd: return 3n+1
+         * 
+         * @example
+         * collatzFunction(6)  // returns 3
+         * collatzFunction(5)  // returns 16
+         */
+        function collatzFunction(n) {
+            return n % 2 === 0 ? n / 2 : 3 * n + 1;
+        }
+
+        /**
+         * Generates the complete Collatz sequence starting from n until reaching 1
+         * 
+         * @param {number} n - The starting positive integer
+         * @returns {number[]} - Array containing the complete Collatz sequence
+         * @throws {Error} - If sequence exceeds MAX_SEQUENCE_LENGTH (safety limit)
+         * 
+         * Algorithm:
+         * 1. Initialize sequence with starting value n
+         * 2. Iteratively apply collatzFunction(current)
+         * 3. Append each result to sequence
+         * 4. Stop when current reaches 1
+         * 5. Enforce safety limit to prevent infinite loops
+         * 
+         * @example
+         * generateCollatzSequence(7)
+         * // returns [7, 22, 11, 34, 17, 52, 26, 13, 40, 20, 10, 5, 16, 8, 4, 2, 1]
+         */
+        function generateCollatzSequence(n) {
+            const sequence = [n];
+            let current = n;
+            
+            while (current !== 1 && sequence.length < CONFIG.MAX_SEQUENCE_LENGTH) {
+                current = collatzFunction(current);
+                sequence.push(current);
+            }
+            
+            if (sequence.length >= CONFIG.MAX_SEQUENCE_LENGTH) {
+                throw new Error(`Sequence exceeded maximum length of ${CONFIG.MAX_SEQUENCE_LENGTH}`);
+            }
+            
+            return sequence;
+        }
+
+        /**
+         * Checks if two numbers have the same parity (both even or both odd)
+         * 
+         * @param {number} first - First number to compare
+         * @param {number} second - Second number to compare
+         * @returns {boolean} - True if both have same parity, false otherwise
+         * 
+         * Implementation:
+         * - Uses modulo 2 to determine parity
+         * - Even numbers: n % 2 === 0
+         * - Odd numbers: n % 2 === 1
+         * 
+         * Mathematical context:
+         * Required for tuple-based transform validation (Definition 2.3, step 1):
+         * The residue parameter p must satisfy p ≡ ci (mod 2)
+         * 
+         * @example
+         * hasMatchingParity(4, 6)   // returns true (both even)
+         * hasMatchingParity(3, 7)   // returns true (both odd)
+         * hasMatchingParity(4, 5)   // returns false (different parity)
+         */
+        function hasMatchingParity(first, second) {
+            return first % 2 === second % 2;
+        }
+
+        /**
+         * Calculates the tuple-based transform parameters [p, f(p), m] for a consecutive pair
+         * 
+         * @param {number} ci - First element of the Collatz pair
+         * @param {number} ciPlus1 - Second element of the Collatz pair (ci+1)
+         * @param {number} q - Odd transformation parameter
+         * @returns {Object|null} - Object with {p, fP, m} if valid transform exists, null otherwise
+         * 
+         * Algorithm (Definition 2.3 from paper):
+         * 1. Test all p ∈ [1, 2q] with matching parity to ci
+         * 2. Check divisibility: (ci - p) must be divisible by 2q
+         * 3. Calculate m = (ci - p) / (2q)
+         * 4. Verify m ≥ 0 (non-negativity constraint)
+         * 5. Validate reconstruction formula:
+         *    - If p even: ci+1 = q×m + f(p)
+         *    - If p odd:  ci+1 = 6×q×m + f(p)
+         * 6. Return first valid {p, f(p), m} found
+         * 
+         * @example
+         * calculateTransformParameters(7, 22, 1)
+         * // returns {p: 1, fP: 4, m: 3}
+         * // Verification: 7 = 2×1×3 + 1, 22 = 6×1×3 + 4
+         */
+        function calculateTransformParameters(ci, ciPlus1, q) {
+            for (let p = 1; p <= 2 * q; p++) {
+                if (!hasMatchingParity(p, ci)) continue;
+                
+                if ((ci - p) % (2 * q) !== 0) continue;
+                const m = (ci - p) / (2 * q);
+                
+                if (m < 0) continue;
+                
+                const fP = collatzFunction(p);
+                const expectedCiPlus1 = p % 2 === 0 ? q * m + fP : 6 * q * m + fP;
+                
+                if (ciPlus1 === expectedCiPlus1) {
+                    return { p, fP, m };
+                }
+            }
+            
+            return null;
+        }
+
+        /**
+         * Returns the complete tuple transformation for a consecutive Collatz pair
+         * 
+         * @param {number} ci - First element of the pair
+         * @param {number} ciPlus1 - Second element of the pair (ci+1)
+         * @param {number} q - Odd transformation parameter
+         * @returns {Object|null} - Tuple object with originalPair, p, fP, m, q if valid; null otherwise
+         * 
+         * Wrapper function that:
+         * 1. Calls calculateTransformParameters to find valid (p, f(p), m)
+         * 2. Packages result into structured tuple object
+         * 3. Preserves original pair for reference
+         * 
+         * Return structure:
+         * {
+         *   originalPair: [ci, ciPlus1],
+         *   p: number,     // residue parameter
+         *   fP: number,    // f(p) = Collatz function applied to p
+         *   m: number,     // scale parameter
+         *   q: number      // transformation parameter
+         * }
+         * 
+         * @example
+         * getTuple(7, 22, 1)
+         * // returns {originalPair: [7, 22], p: 1, fP: 4, m: 3, q: 1}
+         */
+        function getTuple(ci, ciPlus1, q) {
+            const params = calculateTransformParameters(ci, ciPlus1, q);
+            if (params) {
+                return {
+                    originalPair: [ci, ciPlus1],
+                    p: params.p,
+                    fP: params.fP,
+                    m: params.m,
+                    q: q
+                };
+            }
+            return null;
+        }
+
+        /**
+         * Main algorithm: Transforms entire Collatz sequence into tuple-based representation
+         * 
+         * @param {number} n - Starting positive integer
+         * @param {number} [q=1] - Odd transformation parameter (default: 1)
+         * @returns {Object} - Complete transformation result
+         * @throws {Error} - If transformation fails for any pair
+         * 
+         * Algorithm (implements bijection φ_q: C → T_q from Theorem 2.13):
+         * 1. Generate complete Collatz sequence from n to 1
+         * 2. For each consecutive pair (ci, ci+1):
+         *    - Compute tuple [p, f(p), m, q]
+         *    - Extract p-parameter
+         *    - Extract m-parameter
+         * 3. Build three parallel sequences
+         * 
+         * Return structure:
+         * {
+         *   collatzSeq: number[],        // Original Collatz sequence
+         *   tupleTransforms: Object[],   // Array of tuple objects
+         *   pSequence: number[],         // Residue parameter sequence
+         *   mSequence: number[]          // Scale parameter sequence
+         * }
+         * 
+         * @example
+         * tupleBasedTransform(7, 1)
+         * // returns {
+         * //   collatzSeq: [7, 22, 11, ...],
+         * //   tupleTransforms: [{originalPair: [7,22], p:1, fP:4, m:3, q:1}, ...],
+         * //   pSequence: [1, 2, 1, ...],
+         * //   mSequence: [3, 10, 5, ...]
+         * // }
+         */
+        function tupleBasedTransform(n, q = CONFIG.DEFAULT_Q) {
+            const collatzSeq = generateCollatzSequence(n);
+            const tupleTransforms = [];
+            const pSequence = [];
+            const mSequence = [];
+            
+            for (let i = 0; i < collatzSeq.length - 1; i++) {
+                const ci = collatzSeq[i];
+                const ciPlus1 = collatzSeq[i + 1];
+                
+                const transform = getTuple(ci, ciPlus1, q);
+                if (!transform) {
+                    throw new Error(`Failed to find valid transformation for pair (${ci}, ${ciPlus1})`);
+                }
+                
+                tupleTransforms.push(transform);
+                pSequence.push(transform.p);
+                mSequence.push(transform.m);
+            }
+            
+            return { collatzSeq, tupleTransforms, pSequence, mSequence };
+        }
+
+        /**
+         * Validates a test value of p against all required transformation conditions
+         * 
+         * @param {number} testP - Candidate p value to validate
+         * @param {number} ci - First element of Collatz pair
+         * @param {number} ciPlus1 - Second element of Collatz pair
+         * @param {number} q - Transformation parameter
+         * @returns {Object} - Detailed validation result object
+         * 
+         * Validation checks (in order):
+         * 1. Parity match: testP ≡ ci (mod 2)
+         * 2. Divisibility: (ci - testP) divisible by 2q
+         * 3. Non-negativity: m = (ci - testP)/(2q) ≥ 0
+         * 4. Formula match: ci+1 equals expected value from reconstruction
+         * 
+         * Return structure:
+         * {
+         *   parityMatch: boolean,        // Does testP match ci parity?
+         *   parityStr: string,           // "even" or "odd"
+         *   divisible: boolean,          // Is (ci - testP) divisible by 2q?
+         *   m: number|null,              // Calculated m value
+         *   mNonNegative: boolean,       // Is m ≥ 0?
+         *   fP: number,                  // f(testP) value
+         *   formulaMatch: boolean,       // Does reconstruction match ci+1?
+         *   expectedCiPlus1: number|null,// Expected value from formula
+         *   ci: number,                  // Original ci (for reference)
+         *   q: number                    // Parameter q (for reference)
+         * }
+         * 
+         * Used by displayPValidationResult() to show step-by-step validation in UI
+         */
+        function computePValidation(testP, ci, ciPlus1, q) {
+            const fP = collatzFunction(testP);
+            
+            const result = {
+                parityMatch: hasMatchingParity(testP, ci),
+                parityStr: testP % 2 === 0 ? "even" : "odd",
+                divisible: false,
+                m: null,
+                mNonNegative: false,
+                fP: fP,
+                formulaMatch: false,
+                expectedCiPlus1: null,
+                ci: ci,
+                q: q
+            };
+            
+            if (!result.parityMatch) return result;
+            
+            if ((ci - testP) % (2 * q) === 0) {
+                result.divisible = true;
+                result.m = (ci - testP) / (2 * q);
+                result.mNonNegative = result.m >= 0;
+                
+                if (result.mNonNegative) {
+                    const expected = testP % 2 === 0 ? q * result.m + fP : 6 * q * result.m + fP;
+                    result.expectedCiPlus1 = expected;
+                    result.formulaMatch = expected === ciPlus1;
+                }
+            }
+            
+            return result;
+        }
+
+        /**
+         * Displays detailed step-by-step validation results for a candidate p value
+         * 
+         * @param {number} testP - The p value being tested
+         * @param {Object} result - Validation result from computePValidation()
+         * @param {number|null} winningP - The actual valid p value (if found), null otherwise
+         * @returns {void} - Updates DOM element #pValidationResult
+         * 
+         * Renders a comprehensive breakdown showing:
+         * 1. Header: "Testing p = {testP}" with color coding based on validity
+         * 2. Parity check: ✓/✗ comparing testP vs ci parity
+         * 3. Divisibility check: Shows (ci - testP) and divisibility by 2q
+         * 4. Non-negativity check: Displays calculated m value
+         * 5. Formula verification: Shows expected vs actual ci+1
+         * 6. Final verdict: "Valid" or "Invalid" with explanation
+         * 7. If invalid and winningP exists: Shows which p actually works
+         * 
+         * Visual format:
+         * - Valid results: green borders and checkmarks
+         * - Invalid results: red borders and crosses
+         * - Mathematical expressions in monospace font
+         * 
+         * Called by: Event handlers when user tests specific p values
+         * Target element: <div id="pValidationResult"></div>
+         */
+        function displayPValidationResult(testP, result, winningP) {
+            const isWinner = testP === winningP;
+            const className = isWinner ? 'success' : 'fail';
+            const color = isWinner ? 'color: #4caf50' : 'color: #f44336';
+            const ci = result.ci;
+            const q = result.q;
+            
+            let message = `<span style="${color}"><strong>p=${testP}</strong></span> is ${result.parityStr}`;
+            
+            if (!result.parityMatch) {
+                message += ', parity does NOT match';
+            } else if (!result.divisible) {
+                message += `, parity OK. m = (ci - p) ÷ (2 × q) = (${ci}-${testP}) ÷ (${2*q}) is not integer, NOT valid`;
+            } else if (!result.mNonNegative) {
+                message += `, parity OK. m = (${ci} - ${testP}) ÷ (2 × q) = ${result.m} < 0, NOT valid`;
+            } else {
+                const status = result.formulaMatch ? "✓ VALID" : "✗ NOT valid";
+                message += `, parity OK. m = (${ci} - ${testP}) ÷ (2 × q) = ${result.m}, f(${testP})=${result.fP}, ${status}`;
+            }
+            
+            return `<div class="test-p ${className}">${message}</div>`;
+        }
+
+        /**
+         * Main calculation handler triggered by user clicking "Process" button
+         * 
+         * @returns {void} - Updates multiple DOM sections with results or errors
+         * 
+         * Workflow:
+         * 1. Read and validate user inputs (n and q)
+         * 2. Validate n is a positive integer within limits
+         * 3. Validate q is odd and positive
+         * 4. Generate Collatz sequence from n
+         * 5. Apply tuple-based transform φ_q
+         * 6. Display results in four sections:
+         *    - Collatz sequence visualization
+         *    - Tuple transformation table
+         *    - p-sequence
+         *    - m-sequence
+         * 7. Show additional analysis sections
+         * 8. Handle and display errors if validation fails
+         * 
+         * DOM Updates:
+         * - #n-input: Read starting value
+         * - #q-input: Read transformation parameter
+         * - #results: Display transformation results
+         * - #error: Display validation errors
+         * 
+         * Error Conditions:
+         * - n < 1 or n not integer: "Please enter a valid positive integer"
+         * - q even or q < 1: "Parameter q must be an odd positive integer"
+         * - Sequence exceeds MAX_SEQUENCE_LENGTH: "Sequence exceeded maximum length"
+         * 
+         * Performance:
+         * - Small delay (100ms) for UI update before calculation
+         * - Shows loading spinner during computation
+         * 
+         * Called by: Click event on "Process" button
+         */
+        function calculate() {
+            const nInput = document.getElementById('n-input');
+            const qInput = document.getElementById('q-input');
+            const resultsDiv = document.getElementById('results');
+            const errorDiv = document.getElementById('error');
+            
+            const n = parseInt(nInput.value);
+            const q = parseInt(qInput.value) || CONFIG.DEFAULT_Q;
+            
+            // Validation
+            if (!n || n < 1) {
+                errorDiv.innerHTML = '<div class="error-message">Please enter a valid positive integer for n</div>';
+                errorDiv.style.display = 'block';
+                resultsDiv.classList.remove('show');
+                return;
+            }
+            
+            if (q < 1 || q % 2 === 0) {
+                errorDiv.innerHTML = '<div class="error-message">Parameter q must be an odd positive integer</div>';
+                errorDiv.style.display = 'block';
+                resultsDiv.classList.remove('show');
+                return;
+            }
+            
+            // Clear error if valid
+            errorDiv.innerHTML = '';
+            errorDiv.style.display = 'none';
+            
+            // Show loading
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Calculating...</div>';
+            resultsDiv.classList.add('show');
+            
+            // Calculate with small delay for UI update
+            setTimeout(() => {
+                try {
+                    const { collatzSeq, tupleTransforms, pSequence, mSequence } = tupleBasedTransform(n, q);
+                    displayResults(n, q, collatzSeq, tupleTransforms, pSequence, mSequence);
+                } catch (error) {
+                    errorDiv.innerHTML = `<div class="error-message">⚠️ Error: ${error.message}</div>`;
+                    errorDiv.style.display = 'block';
+                    resultsDiv.classList.remove('show');
+                }
+            }, 100);
+        }
+
+        /**
+         * Orchestrates the display of all transformation results across multiple sections
+         * 
+         * @param {number} n - Starting value
+         * @param {number} q - Transformation parameter
+         * @param {number[]} collatzSeq - Complete Collatz sequence
+         * @param {Object[]} tupleTransforms - Array of tuple objects
+         * @param {number[]} pSequence - Residue parameter sequence
+         * @param {number[]} mSequence - Scale parameter sequence
+         * @returns {void} - Updates multiple DOM sections
+         * 
+         * Coordinates display by calling:
+         * 1. displayCollatzSequence(collatzSeq)
+         * 2. displayTupleTransform(tupleTransforms, n, q)
+         * 3. displayPSequence(pSequence)
+         * 4. displayMSequence(mSequence)
+         * 
+         * Makes visible:
+         * - #collatzResult section
+         * - #tupleResult section
+         * - #additionalAnalysis section (p and m sequences)
+         * 
+         * Called by: calculate() after successful transformation
+         */
+        function displayResults(n, q, collatzSeq, tupleTransforms, pSequence, mSequence) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <div class="section">
+                    <div class="section-title">Algorithm Setup</div>
+                    <div class="sequence-display">
+                        <strong>Initial values:</strong> n = ${n} and q = ${q} ${q === CONFIG.DEFAULT_Q ? '[default]' : '[provided]'}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Collatz Sequence</div>
+                    <div class="sequence-display">
+                        [${collatzSeq.join(', ')}]
+                        <br><br>
+                        <strong>Length:</strong> ${collatzSeq.length} elements
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Tuple-based Transform and Reconstruction</div>
+            `;
+            
+            tupleTransforms.forEach((transform, index) => {
+                html += generateTransformStepHTML(index + 1, transform);
+            });
+            
+            html += `</div>`;
+            
+            html += `
+                <div class="section">
+                    <div class="section-title">p-Parameters Sequence</div>
+                    <div class="sequence-display">
+                        [${pSequence.join(', ')}]
+                        <br><br>
+                        <strong>Length:</strong> ${pSequence.length} elements
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">m-Parameters Sequence</div>
+                    <div class="sequence-display">
+                        [${mSequence.join(', ')}]
+                        <br><br>
+                        <strong>Length:</strong> ${mSequence.length} elements
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        /**
+         * Generates HTML representation for a single transformation step (one tuple)
+         * 
+         * @param {number} stepNum - Step number (1-based for display)
+         * @param {Object} transform - Tuple object with {originalPair, p, fP, m, q}
+         * @returns {string} - HTML string for the transformation step
+         * 
+         * Renders a detailed card showing:
+         * 1. Step header: "Step {stepNum}: Pair (ci, ci+1)"
+         * 2. Original pair values with arrow notation
+         * 3. Resulting tuple: [p, f(p), m, q]
+         * 4. Interactive "Show Details" button
+         * 5. Collapsible details panel containing:
+         *    - m calculation breakdown
+         *    - Reconstruction verification (ci = 2qm + p)
+         *    - Formula verification for ci+1
+         * 
+         * HTML structure:
+         * - Outer div: .transform-step
+         * - Details panel: .step-details (hidden by default)
+         * - Toggle button triggers showStepDetails(stepNum-1)
+         * 
+         * Called by: displayTupleTransform() for each tuple in sequence
+         */
+        function generateTransformStepHTML(stepNum, transform) {
+            const [ci, ciPlus1] = transform.originalPair;
+            const { p, fP, m, q } = transform;
+            
+            let html = `
+                <div class="transform-step">
+                    <div class="step-number">Step ${stepNum}:</div>
+                    <div class="pair-display">
+                        <strong>Original pair (c<sub>${stepNum}</sub>, c<sub>${stepNum + 1}</sub>):</strong> 
+                        (<span class="highlight-green">${ci}</span>, <span class="highlight-green">${ciPlus1}</span>)
+                    </div>
+                    
+                    <div class="transform-process">
+                        <strong>Transformation process:</strong><br>
+                        Testing p ∈ [1, ${2*q}] with same parity as c<sub>${stepNum}</sub>=${ci} (${ci % 2 === 0 ? 'even' : 'odd'}):<br><br>
+            `;
+            
+            for (let testP = 1; testP <= 2 * q; testP++) {
+                const result = computePValidation(testP, ci, ciPlus1, q);
+                html += displayPValidationResult(testP, result, p);
+            }
+            
+            html += `
+                    </div>
+                    
+                    <div class="tuple-result">
+                        <strong>Tuple-based transform:</strong> [p=${p}, f(p)=${fP}, m=${m}, q=${q}]
+                    </div>
+                    
+                    <div class="reconstruction">
+                        <strong>Reconstruction process:</strong><br>
+                        <div class="formula">
+                            ci   = 2 × q × m + p     = 2 × ${q} × ${m} + ${p} = ${2*q*m} + ${p} = <span class="highlight-green">${ci}</span>
+                        </div>
+                        <div class="formula">
+            `;
+            
+            if (p % 2 === 0) {
+                html += `ci+1 =     q × m + f(p) = ${q} × ${m} + ${fP} = ${q*m} + ${fP} = <span class="highlight-green">${ciPlus1}</span>`;
+            } else {
+                html += `ci+1 = 6 × q × m + f(p) = 6 × ${q} × ${m} + ${fP} = ${6*q*m} + ${fP} = <span class="highlight-green">${ciPlus1}</span>`;
+            }
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+
+        /**
+         * Initializes the application when DOM is fully loaded
+         * 
+         * @returns {void} - Sets up event listeners and initial UI state
+         * 
+         * Initialization tasks:
+         * 1. Attach click handler to "Calculate Transform" button
+         *    - Calls calculate() on click
+         * 2. Attach keypress handler to input fields
+         *    - Triggers calculation on Enter key
+         * 3. Set focus on n input field for immediate user interaction
+         * 
+         * Event listeners attached:
+         * - #calculateBtn: click → calculate()
+         * - #nInput: keypress → Enter triggers calculate()
+         * - #qInput: keypress → Enter triggers calculate()
+         * 
+         * Initial state:
+         * - n input field receives focus
+         * - All result sections hidden until first calculation
+         * 
+         * Called by: Browser when DOM parsing completes
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('n-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') calculate();
+            });
+            document.getElementById('q-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') calculate();
+            });
+            
+            const input = document.getElementById('n-input');
+            if (input) {
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2940 @@
+<!--
+/**
+ * ============================================================================
+ * THE DYNAMICAL ISOMORPHISM
+ * ============================================================================
+ * 
+ * A web-based visualization tool demonstrating the dynamical isomorphism 
+ * between the Collatz function ƒ and its tuple-based representation ƒT. 
+ * This tool shows the bijective mappings φ and φ⁻¹ that preserve the 
+ * dynamical structure between consecutive Collatz pairs and their tuple 
+ * transformations. The visualization demonstrates that m-value repetition 
+ * (pseudocycles) occurs universally in all Collatz sequences, and that 
+ * removing these repetitions breaks the dynamical isomorphism, proving 
+ * their necessity for the structure.
+ * 
+ * MATHEMATICAL FOUNDATION:
+ * Based on "On the Convergence of Collatz Sequences: A New Algebraic Framework"
+ * by Javier Hernandez (2026).
+ * https://doi.org/10.5281/zenodo.15546925
+ *
+ * CORE CONCEPTS:
+ * - Dynamical Isomorphism (Theorem 3.11): φ₁ : C → T₁ preserves iteration,
+ *   cycles, and convergence between Collatz space and tuple space
+ * - Pseudocycles (Section 6): Non-consecutive repetitions of parameter m
+ * - Structural Necessity (Theorem 5.6): Parameter repetitions are required
+ *   for the bijection to exist - removing them breaks φ and φ⁻¹
+ * 
+ * VISUALIZATION FEATURES:
+ * 1. Horizontal arrows (ƒ, ƒT): Show parallel evolution in both spaces
+ * 2. Vertical φ arrows: Map Collatz pairs → tuples (forward)
+ * 3. Vertical φ⁻¹ arrows: Map tuples → Collatz pairs (inverse)
+ * 4. Interactive pruning: Click scissors (✂️) to remove pseudocycles
+ * 5. Error detection: Red arrows show broken mappings when pruned
+ * 6 Green arrows: Valid transformations preserving isomorphism
+ * 7 Red arrows: Invalid transformations (occur when pseudocycles removed)
+ * 8 Cyan blocks: Repeated m-values (pseudocycles)
+ * 9 Orange blocks: Trivial cycle {4, 2, 1} where m=0
+ * 
+ * INTERACTIVE DEMONSTRATION:
+ * 1. Enter positive integer n
+ * 2. Click "Process" to generate visualization
+ * 3. Observe green arrows showing valid isomorphism
+ * 4. Click scissors on cyan blocks to remove pseudocycle
+ * 5. Watch red error arrows appear proving necessity
+ * 
+ * AUTHOR: Javier Hernandez
+ * EMAIL: 271314@pm.me
+ * LICENSE: https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/blob/main/LICENSE
+ * REPOSITORY: https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/tree/main/step02-the-dynamical-isomorphism
+ * 
+ * ============================================================================
+ */
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dynamical Isomorphism</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+
+    <style>
+        :root {
+            --block-width: 180px;
+            --block-height: 90px;
+            --block-spacing: 100px;
+            --row-gap: 100px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            min-height: 100vh;
+            padding: 0;
+            color: #e0e0e0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #000000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            padding: 20px 40px;
+            border-radius: 12px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            text-align: left;
+            color: #ffffff;
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 2px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .subtitle {
+            display: none;
+        }
+
+         .input-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="number"] {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            width: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #7c8ef5;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: none;
+            transition: none;
+            width: 120px;
+            transition: background-color 0.3s;
+        }
+
+        button:disabled {
+            background: #4a4a4a;
+            color: #888888;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #1976d2;
+        }
+
+        button.process {
+            background: #4caf50;
+        }
+
+        button.process:hover:not(:disabled) {
+            background: #45a049;
+        }
+
+        .flow-container {
+            margin-top: 150px;
+            padding: 40px;
+            padding-top: 0;
+            padding-bottom: 0;
+            height: calc(100vh - 200px);
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--row-gap);
+            position: relative;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .sequence-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            min-height: var(--block-height);
+            position: relative;
+            width: max-content;
+        }
+
+        #collatz-row {
+            gap: 0;
+        }
+        
+        .collatz-spacer {
+            flex-shrink: 0;
+            height: 1px;
+        }
+
+        #tuple-row {
+            gap: 0;
+        }
+
+        .spacer {
+            flex-shrink: 0;
+            height: 1px;
+        }
+
+        .block {
+            width: var(--block-width);
+            min-height: var(--block-height);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+
+        .collatz-block {
+            background: #3b82f6;
+            color: white;
+            font-size: 20px;
+        }
+
+        .collatz-block.cycle {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .tuple-block {
+            background: #8b5cf6;
+            color: white;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .tuple-block.cycle {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .tuple-block.repeated {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+        }
+
+        .block-label {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .block-value {
+            font-size: 15px;
+            word-break: break-all;
+            text-align: center;
+        }
+
+        .block.hidden {
+            display: none;
+        }
+
+        .mr-clickable {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+
+        .mr-clickable:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .mr-clickable:active {
+            transform: scale(0.98);
+        }
+
+        .mr-active {
+            border: 3px solid #dc2626 !important;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.6) !important;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); }
+        }
+
+        .mr-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 18px;
+            opacity: 0.7;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .mr-clickable:hover .mr-icon {
+            opacity: 1;
+        }
+
+        .mr-active .mr-icon {
+            opacity: 1;
+            font-size: 20px;
+        }
+
+        .arrow {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .arrow-label {
+            position: absolute;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 16px;
+            font-weight: bold;
+            font-style: italic;
+            cursor: help;
+            transition: all 0.2s;
+            user-select: none;
+            pointer-events: auto;
+            z-index: 10;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .arrow-label:hover {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            z-index: 100;
+        }
+
+         #error {
+            margin-top: 100px;
+            padding: 0 40px;
+        }
+
+        .error-message {
+            background: #7f1d1d;
+            border: 1px solid #fcc;
+            color: #fee;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: #1f2937;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 10000;
+            max-width: min(800px, 90vw);
+            min-width: 200px;
+            width: max-content;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 2px solid #667eea;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-height: 80vh; 
+            overflow-y: auto;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        .tooltip-text {
+            margin: 6px 0;
+            color: #d1d5db;
+            font-size: 13px;
+        }
+
+        .tooltip .katex {
+            color: white;
+        }
+
+        .tooltip .katex-display {
+            margin: 8px 0;
+        }
+
+        .equation-line {
+            margin: 5px 0;
+            padding: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+
+        .author-info {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            font-size: 0.9em;
+            color: #999;
+            border-radius: 12px;
+            margin: 40px 20px 20px 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .author-info a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .author-info a:hover {
+            text-decoration: underline;
+            color: #7c8ef5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="tooltip" id="tooltip"></div>
+    
+    <div class="header">
+        <h1>The Dynamical Isomorphism</h1>
+        
+        <div class="input-section">
+            <input type="number" id="inputN" min="1" placeholder="Enter n > 0" value="">
+            <button onclick="controller.process()" class="process">Process</button>
+            <button onclick="controller.showExport()" id="exportBtn" disabled>Export</button>
+        </div>
+
+    </div>
+
+    <div id="error" style="display: none;"></div>
+    
+    <div class="flow-container" id="flowContainer">
+        <!-- Horizontal sequences will be generated here -->
+    </div>
+
+    <!-- KaTeX JS -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+    <script>
+        /**
+         * Global configuration for dynamical isomorphism visualization.
+         * 
+         * @constant {Object} CONFIG
+         * @property {number} MAX_STEPS - Safety limit to prevent infinite loops (10,000 iterations)
+         * @property {Set<number>} CYCLE_VALUES - Set {2, 1, 4} representing the unique trivial cycle (Theorem 4.1)
+         * @property {number} ARROW_HEAD_SIZE - Arrow head size in pixels (14px)
+         * @property {number} ARROW_THICKNESS - Arrow line thickness in pixels (4px)
+         * @property {Object} COLORS - Color palette for transformations
+         * @property {string} COLORS.F_ARROW - Green color for valid ƒ arrows
+         * @property {string} COLORS.F_ARROW_ERROR - Red color for error ƒ arrows
+         * @property {string} COLORS.PHI_ARROW - Green color for valid φ arrows
+         * @property {string} COLORS.PHI_ARROW_ERROR - Red color for error φ arrows
+         * @property {string} COLORS.PHI_INV_ARROW - Green color for valid φ⁻¹ arrows
+         * @property {string} COLORS.PHI_INV_ARROW_ERROR - Red color for error φ⁻¹ arrows
+         */
+        const CONFIG = {
+            MAX_STEPS: 10000,
+            CYCLE_VALUES: new Set([2, 1, 4]),
+            ARROW_HEAD_SIZE: 14,
+            ARROW_THICKNESS: 4,
+            COLORS: {
+                F_ARROW: '#059669',
+                F_ARROW_ERROR: '#dc2626',
+                PHI_ARROW: '#059669',
+                PHI_ARROW_ERROR: '#dc2626',
+                PHI_INV_ARROW: '#059669',
+                PHI_INV_ARROW_ERROR: '#dc2626'
+            }
+        };
+
+        /**
+         * Core mathematical operations for Collatz sequences and tuple transformations.
+         * Implements the mathematical framework from Section 2 of the paper.
+         * 
+         * @class CollatzMath
+         */
+        class CollatzMath {
+
+            /**
+             * Collatz function: n/2 if even, 3n+1 if odd.
+             * Implements Definition 2.1 from the paper.
+             * 
+             * @static
+             * @param {number} n - Positive integer
+             * @returns {number} The next value in the Collatz sequence
+             * 
+             * @example
+             * CollatzMath.f(5)  // returns 16 (odd: 3*5+1)
+             * CollatzMath.f(16) // returns 8  (even: 16/2)
+             */
+            static f(n) {
+                return n % 2 === 0 ? n / 2 : 3 * n + 1;
+            }
+
+            
+            /**
+             * Generates the complete Collatz sequence starting from n until reaching the cycle {1, 2, 4}.
+             * Continues through at least two occurrences of 1 to ensure complete cycle capture.
+             * Implements Definition 2.2 and supports the tuple decomposition requirements.
+             * 
+             * @static
+             * @param {number} n - Starting positive integer
+             * @returns {Array<number>} Complete Collatz sequence including at least two 1's
+             * 
+             * @throws {Error} If maximum steps (CONFIG.MAX_STEPS) reached without convergence
+             * 
+             * @description
+             * The function ensures:
+             * 1. Standard Collatz sequence generation (n/2 if even, 3n+1 if odd)
+             * 2. Detection of reaching 1 (entrance to trivial cycle)
+             * 3. Continuation through cycle at least twice to capture cycle structure
+             * 4. This guarantees proper tuple decomposition and m=0 detection
+             * 
+             * Safety limit: Maximum 10,000 steps to prevent infinite loops.
+             * 
+             * @example
+             * CollatzMath.generateSequence(5)
+             * // returns [5, 16, 8, 4, 2, 1, 4, 2, 1]
+             * // Continues past first 1 to capture complete cycle
+             */        
+            static generateSequence(n) {
+                const sequence = [n];
+                let current = n;
+                let steps = 0;
+                let reachedOne = false;
+                let cycleCount = 0;
+
+                while (steps < CONFIG.MAX_STEPS) {
+                    current = this.f(current);
+                    sequence.push(current);
+                    steps++;
+
+                    if (current === 1) {
+                        if (!reachedOne) {
+                            reachedOne = true;
+                        }
+                        cycleCount++;
+                    }
+                    
+                    if (reachedOne && cycleCount >= 2) {
+                        break;
+                    }
+
+                    if (steps >= CONFIG.MAX_STEPS) {
+                        throw new Error('Maximum steps reached');
+                    }
+                }
+
+                return sequence;
+            }
+
+            /**
+             * Computes tuple representation [p, f(p), m, q] for each consecutive pair in the Collatz sequence.
+             * This is the core of the φ mapping: (cᵢ, cᵢ₊₁) → τᵢ
+             * Implements Definition 2.3 from the paper with q=1.
+             * 
+             * @static
+             * @param {Array<number>} sequence - Complete Collatz sequence
+             * @returns {Array<Object>} Array of tuple objects {p, fp, m, q}
+             * 
+             * @description
+             * For each consecutive pair (cᵢ, cᵢ₊₁):
+             * - Determines p based on parity: p = 2 if cᵢ is even, p = 1 if cᵢ is odd
+             * - Computes f(p): fp = 1 if p=2 (even), fp = 4 if p=1 (odd)
+             * - Sets q = 1 (fixed parameter in this framework)
+             * - Calculates m = (cᵢ - p) / (2q) using the decomposition cᵢ = 2qm + p
+             * 
+             * This tuple sequence forms the range of the φ function and is in dynamical
+             * isomorphism to the Collatz sequence via the bijective mappings φ and φ⁻¹.
+             * 
+             * The resulting tuple array is one element shorter than the Collatz sequence
+             * (n tuples for n+1 Collatz values).
+             * 
+             * @example
+             * const sequence = [11, 34, 17, 52];
+             * CollatzMath.computeTuples(sequence)
+             * // returns [
+             * //   {p: 1, fp: 4, m: 5, q: 1},   // (11,34)
+             * //   {p: 2, fp: 1, m: 16, q: 1},  // (34,17)
+             * //   {p: 1, fp: 4, m: 8, q: 1}    // (17,52)
+             * // ]
+             */
+            static computeTuples(sequence) {
+                const tuples = [];
+                
+                for (let i = 0; i < sequence.length - 1; i++) {
+                    const ci = sequence[i];
+                    const ciPlus1 = sequence[i + 1];
+                    
+                    const p = ci % 2 === 0 ? 2 : 1;
+                    const fp = p === 2 ? 1 : 4;
+                    const q = 1;
+                    const m = (ci - p) / (2 * q);
+                    
+                    tuples.push({ p, fp, m, q });
+                }
+                
+                return tuples;
+            }
+
+            /**
+             * Finds the first repeated m-value in the tuple sequence.
+             * This identifies the pseudocycle that proves isomorphic properties.
+             * Implements the parameter repetition detection from Section 6 of the paper.
+             * 
+             * @static
+             * @param {Array<Object>} tuples - Array of tuple objects {p, fp, m, q}
+             * @returns {Object|null} Object with {firstOccurrenceIndex, firstRepeatedIndex, repeatedM} or null
+             * 
+             * @description
+             * By dynamical isomorphism, every Collatz sequence must have at least one
+             * repeated m-value (pseudocycle). This function identifies:
+             * - firstOccurrenceIndex: Position where m first appears
+             * - firstRepeatedIndex: Position where m repeats (forms pseudocycle)
+             * - repeatedM: The actual m value that repeats (m_r)
+             * 
+             * This pseudocycle is critical for demonstrating:
+             * 1. The necessity of repetition in maintaining dynamical isomorphism
+             * 2. That removing pseudocycles breaks the bijective mappings φ and φ⁻¹
+             * 3. The universal occurrence of m-value repetition in all Collatz sequences
+             * 
+             * Returns null only if no repetition found (should not occur for valid sequences).
+             * 
+             * @example
+             * const tuples = [
+             *   {p: 1, fp: 4, m: 5, q: 1},
+             *   {p: 2, fp: 1, m: 16, q: 1},
+             *   {p: 1, fp: 4, m: 5, q: 1}  // m=5 repeats here
+             * ];
+             * CollatzMath.findFirstRepetition(tuples)
+             * // returns {firstOccurrenceIndex: 0, firstRepeatedIndex: 2, repeatedM: 5}
+             */
+            static findFirstRepetition(tuples) {
+                const mValues = tuples.map(t => t.m);
+                const seen = new Map();
+                
+                for (let i = 0; i < mValues.length; i++) {
+                    const m = mValues[i];
+                    
+                    if (seen.has(m)) {
+                        return {
+                            firstOccurrenceIndex: seen.get(m),
+                            firstRepeatedIndex: i,
+                            repeatedM: m
+                        };
+                    }
+                    
+                    seen.set(m, i);
+                }
+                
+                return null;
+            }
+        }
+
+        /**
+         * Data model for visualization state.
+         * Manages Collatz sequence, tuples, pruning state, and hidden elements.
+         * Supports the interactive demonstration of dynamical isomorphism properties.
+         * 
+         * @class VisualizationData
+         */
+        class VisualizationData {
+            /**
+             * Creates a new visualization data model.
+             * 
+             * @constructor
+             * @param {number} n - Starting value for the Collatz sequence
+             * @param {Array<number>} sequence - Complete Collatz sequence
+             * @param {Array<Object>} tuples - Array of tuple objects {p, fp, m, q}
+             * 
+             * @description
+             * Initializes the complete visualization state including:
+             * - The Collatz sequence and its tuple representation
+             * - Detection of the first repeated m-value (pseudocycle)
+             * - Building visualization items for rendering
+             * - Tracking pruning state and hidden elements
+             */
+            constructor(n, sequence, tuples) {
+                this.n = n;
+                this.sequence = sequence;
+                this.tuples = tuples;
+                this.repeatedInfo = CollatzMath.findFirstRepetition(tuples);
+                this.items = this._buildItems();
+                this.pruningState = 'none';
+                this.hiddenIndices = new Set();
+            }
+
+            /**
+             * Builds visualization items array from sequence and tuples.
+             * Identifies cycle elements (where m=0) and repeated tuples.
+             * 
+             * @private
+             * @returns {Array<Object>} Array of visualization items
+             * 
+             * @description
+             * Creates items for both Collatz values and tuples with properties:
+             * - type: 'collatz' or 'tuple'
+             * - index: Position in the sequence
+             * - value: The actual number or tuple object
+             * - cycle: Boolean indicating if element is part of the trivial cycle (m=0)
+             * - class: CSS class for styling ('repeated', 'cycle', or empty)
+             * 
+             * Cycle detection: Elements are marked as cycle if m=0 in any adjacent tuple,
+             * corresponding to the unique trivial cycle {4, 2, 1} (Theorem 4.1).
+             */
+            _buildItems() {
+                const items = [];
+                
+                const cycleCollatzIndices = new Set();
+                this.tuples.forEach((tuple, index) => {
+                    if (tuple.m === 0) {
+                        cycleCollatzIndices.add(index);
+                        cycleCollatzIndices.add(index + 1);
+                    }
+                });
+                
+                this.sequence.forEach((value, index) => {
+                    const isCycle = cycleCollatzIndices.has(index);
+                    items.push({
+                        type: 'collatz',
+                        index: index,
+                        value: value,
+                        cycle: isCycle
+                    });
+                });
+                
+                this.tuples.forEach((tuple, index) => {
+                    const isCycle = tuple.m === 0;
+                    const isRepeated = this.repeatedInfo && 
+                        (index === this.repeatedInfo.firstOccurrenceIndex || 
+                         index === this.repeatedInfo.firstRepeatedIndex);
+                    
+                    items.push({
+                        type: 'tuple',
+                        index: index,
+                        value: tuple,
+                        cycle: isCycle,
+                        class: isRepeated ? 'repeated' : (isCycle ? 'cycle' : '')
+                    });
+                });
+                
+                return items;
+            }
+
+            /**
+             * Gets all Collatz value items from the items array.
+             * 
+             * @returns {Array<Object>} Array of Collatz value items
+             */
+            getCollatzItems() {
+                return this.items.filter(item => item.type === 'collatz');
+            }
+
+            /**
+             * Gets all tuple items from the items array.
+             * 
+             * @returns {Array<Object>} Array of tuple items
+             */
+            getTupleItems() {
+                return this.items.filter(item => item.type === 'tuple');
+            }
+
+            /**
+             * Checks if a Collatz value at given index is hidden due to pruning.
+             * 
+             * @param {number} index - Index of the Collatz value
+             * @returns {boolean} True if hidden, false otherwise
+             */
+            isCollatzHidden(index) {
+                if (this.pruningState === 'none') return false;
+                return this.hiddenIndices.has(`c-${index}`);
+            }
+
+            /**
+             * Checks if a tuple at given index is hidden due to pruning.
+             * 
+             * @param {number} index - Index of the tuple
+             * @returns {boolean} True if hidden, false otherwise
+             */
+            isTupleHidden(index) {
+                if (this.pruningState === 'none') return false;
+                return this.hiddenIndices.has(`t-${index}`);
+            }
+
+            /**
+             * Prunes visualization by hiding elements between first occurrence and first repetition.
+             * Preserves the first occurrence of m_r, hides intermediate elements.
+             * Demonstrates what happens when pseudocycles are removed (breaks isomorphism).
+             * Implements the elimination analysis from Theorem 5.6.
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * This pruning operation demonstrates what happens when pseudocycles are removed:
+             * 1. Hides all tuples from (firstOccurrence + 1) to firstRepetition (inclusive)
+             * 2. Hides corresponding Collatz values from (firstOccurrence + 1) to firstRepetition (inclusive)
+             * 3. Preserves the first occurrence to maintain visual context
+             * 
+             * Critical consequence: This removal breaks the dynamical isomorphism by:
+             * - Creating invalid φ arrows (consecutive Collatz pairs no longer map correctly)
+             * - Creating invalid φ⁻¹ arrows (tuples cannot reconstruct the correct Collatz pairs)
+             * - Demonstrating that pseudocycles are necessary, not removable artifacts
+             * 
+             * The visualization will show red error arrows indicating broken mappings,
+             * proving that the isomorphic structure requires the pseudocycle to be intact.
+             */
+            pruneDown() {
+                if (!this.repeatedInfo) return;
+                
+                this.pruningState = 'pruned-down';
+                this.hiddenIndices.clear();
+                
+                const start = this.repeatedInfo.firstOccurrenceIndex;
+                const end = this.repeatedInfo.firstRepeatedIndex;
+                
+                // Hide tuples from start+1 to end (inclusive)
+                for (let i = start + 1; i <= end; i++) {
+                    this.hiddenIndices.add(`t-${i}`);
+                }
+                
+                // Hide Collatz values from start+1 to end (inclusive)
+                for (let i = start + 1; i <= end; i++) {
+                    this.hiddenIndices.add(`c-${i}`);
+                }
+            }
+
+            /**
+             * Prunes visualization by hiding elements between first occurrence and first repetition.
+             * Preserves the first repetition of m_r, hides intermediate elements including first occurrence.
+             * Demonstrates alternative pseudocycle removal (also breaks isomorphism).
+             * Implements the elimination analysis from Theorem 5.6.
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * This pruning operation is the complement of pruneDown, demonstrating pseudocycle removal:
+             * 1. Hides all tuples from firstOccurrence to (firstRepetition - 1) (inclusive)
+             * 2. Hides corresponding Collatz values from (firstOccurrence + 1) to firstRepetition (inclusive)
+             * 3. Preserves the first repetition (second occurrence) to maintain visual context
+             * 
+             * Critical consequence: Like pruneDown, this breaks the dynamical isomorphism by:
+             * - Creating invalid φ arrows (Collatz pairs don't map to correct tuples)
+             * - Creating invalid φ⁻¹ arrows (tuples cannot reconstruct proper Collatz values)
+             * - Showing divergent m-values in φ (m computed from cᵢ ≠ m computed from cᵢ₊₁)
+             * 
+             * The visualization displays red error arrows with detailed tooltips showing:
+             * - Which reconstruction paths failed
+             * - Divergence between expected and actual values
+             * - Mathematical proof that removing pseudocycles destroys the isomorphic structure
+             */
+            pruneUp() {
+                if (!this.repeatedInfo) return;
+                
+                this.pruningState = 'pruned-up';
+                this.hiddenIndices.clear();
+                
+                const start = this.repeatedInfo.firstOccurrenceIndex;
+                const end = this.repeatedInfo.firstRepeatedIndex;
+                
+                // Hide tuples from start to end-1 (inclusive)
+                for (let i = start; i < end; i++) {
+                    this.hiddenIndices.add(`t-${i}`);
+                }
+                
+                // Hide Collatz values from start+1 to end (inclusive)
+                for (let i = start + 1; i <= end; i++) {
+                    this.hiddenIndices.add(`c-${i}`);
+                }
+            }
+
+            /**
+             * Restores all hidden elements after pruneDown.
+             * Returns visualization to unpruned state.
+             * 
+             * @returns {void}
+             */
+            unpruneDown() {
+                this.pruningState = 'none';
+                this.hiddenIndices.clear();
+            }
+
+            /**
+             * Restores all hidden elements after pruneUp.
+             * Returns visualization to unpruned state.
+             * 
+             * @returns {void}
+             */
+            unpruneUp() {
+                this.pruningState = 'none';
+                this.hiddenIndices.clear();
+            }
+        }
+
+        /**
+         * Renders visualization elements (Collatz blocks and tuple blocks) into the DOM.
+         * Handles spacing, hidden elements, and visual representation of the isomorphism.
+         * 
+         * @class DOMRenderer
+         */
+        class DOMRenderer {
+
+            /**
+             * Renders visualization elements (Collatz blocks and tuple blocks) into the DOM.
+             * Handles spacing, hidden elements, and visual representation of the isomorphism.
+             * 
+             * @class DOMRenderer
+             */
+            static renderBlocks(items, container) {
+                const collatzItems = items.filter(item => item.type === 'collatz');
+                const tupleItems = items.filter(item => item.type === 'tuple');
+                
+                let collatzHTML = '<div class="sequence-row" id="collatz-row">';
+                let inHiddenRegion = false;
+                
+                collatzItems.forEach((item, idx) => {
+                    const isHidden = controller.vizData && controller.vizData.isCollatzHidden(item.index);
+                    
+                    collatzHTML += this._renderCollatzBlock(item);
+                    
+                    if (idx < collatzItems.length - 1) {
+                        const nextItem = collatzItems[idx + 1];
+                        const nextHidden = controller.vizData && controller.vizData.isCollatzHidden(nextItem.index);
+                        
+                        if (isHidden && !nextHidden) {
+                            let hiddenCount = 0;
+                            for (let j = item.index; j < nextItem.index; j++) {
+                                if (controller.vizData && controller.vizData.isCollatzHidden(j)) {
+                                    hiddenCount++;
+                                }
+                            }
+                            
+                            const totalWidth = `var(--block-spacing)`;
+                            collatzHTML += `<div class="collatz-spacer" style="width: ${totalWidth};"></div>`;
+                            inHiddenRegion = false;
+                        }
+                        else if (!isHidden && !nextHidden) {
+                            collatzHTML += '<div class="collatz-spacer" style="width: var(--block-spacing);"></div>';
+                        }
+                        else if (!isHidden && nextHidden) {
+                            collatzHTML += '<div class="collatz-spacer" style="width: var(--block-spacing);"></div>';
+                            inHiddenRegion = true;
+                        }
+                    }
+                });
+
+                collatzHTML += '</div>';
+                
+                let tupleHTML = '<div class="sequence-row" id="tuple-row">';
+                tupleHTML += '<div class="spacer" style="width: calc(var(--block-width) / 2 + var(--block-spacing) / 2); flex-shrink: 0;"></div>';
+                
+                tupleItems.forEach((item, idx) => {
+                    const isHidden = controller.vizData && controller.vizData.isTupleHidden(item.index);
+                    
+                    tupleHTML += this._renderTupleBlock(item);
+                    
+                    if (idx < tupleItems.length - 1) {
+                        const nextItem = tupleItems[idx + 1];
+                        const nextHidden = controller.vizData && controller.vizData.isTupleHidden(nextItem.index);
+                        
+                        if (isHidden && !nextHidden) {
+                            let hiddenCount = 0;
+                            for (let j = item.index; j < nextItem.index; j++) {
+                                if (controller.vizData && controller.vizData.isTupleHidden(j)) {
+                                    hiddenCount++;
+                                }
+                            }
+                            
+                            const totalWidth = `var(--block-spacing)`;
+                            tupleHTML += `<div class="spacer" style="width: ${totalWidth}; flex-shrink: 0;"></div>`;
+                        }
+                        else if (!isHidden && !nextHidden) {
+                            tupleHTML += '<div class="spacer" style="width: var(--block-spacing); flex-shrink: 0;"></div>';
+                        }
+                        else if (isHidden && nextHidden) {
+                            // No spacer - hidden blocks completely collapse
+                        }
+                        else if (!isHidden && nextHidden) {
+                            tupleHTML += '<div class="spacer" style="width: var(--block-spacing); flex-shrink: 0;"></div>';
+                        }
+                    }
+                });
+                tupleHTML += '</div>';
+                
+                container.innerHTML = collatzHTML + tupleHTML;
+            }
+
+            /**
+             * Renders a single Collatz block element.
+             * 
+             * @private
+             * @static
+             * @param {Object} item - Collatz item object {type, index, value, cycle}
+             * @returns {string} HTML string for the Collatz block
+             * 
+             * @description
+             * Creates a blue block displaying:
+             * - Label: c_{index+1} (e.g., c₁, c₂, c₃)
+             * - Value: The Collatz sequence value
+             * - Cycle class: Orange gradient if m=0 (trivial cycle)
+             * - Hidden class: Invisible if pruned
+             */
+            static _renderCollatzBlock(item) {
+                const cycleClass = item.cycle ? 'cycle' : '';
+                const hiddenClass = controller.vizData && controller.vizData.isCollatzHidden(item.index) ? 'hidden' : '';
+                return `
+                    <div class="collatz-block block ${cycleClass} ${hiddenClass}" 
+                         data-index="${item.index}" 
+                         id="c-${item.index}">
+                        <div class="block-label">c<sub>${item.index + 1}</sub></div>
+                        <div class="block-value">${item.value}</div>
+                    </div>
+                `;
+            }
+
+            /**
+             * Renders a single tuple block element.
+             * 
+             * @private
+             * @static
+             * @param {Object} item - Tuple item object {type, index, value, cycle, class}
+             * @returns {string} HTML string for the tuple block
+             * 
+             * @description
+             * Creates a purple block displaying:
+             * - Label: τ_{index+1} (e.g., τ₁, τ₂, τ₃)
+             * - Value: [p, f(p), m, q] tuple representation
+             * - Cycle class: Orange if m=0, cyan if repeated m-value
+             * - Clickable: Scissors icon (✂️) for repeated m-values
+             * - Active state: Red border and glow if pruning is active
+             * 
+             * Repeated tuples are interactive:
+             * - Click first occurrence: activates pruneDown mode
+             * - Click second occurrence: activates pruneUp mode
+             * - Visual feedback shows which pruning is active
+             */
+            static _renderTupleBlock(item) {
+                const isFirstOccurrence = item.class === 'repeated' && 
+                    controller.vizData && 
+                    item.index === controller.vizData.repeatedInfo.firstOccurrenceIndex;
+                    
+                const isSecondOccurrence = item.class === 'repeated' && 
+                    controller.vizData && 
+                    item.index === controller.vizData.repeatedInfo.firstRepeatedIndex;
+                
+                let clickableClass = '';
+                let iconHTML = '';
+                let onclickAttr = '';
+                let activeClass = '';
+                
+                if (isFirstOccurrence || isSecondOccurrence) {
+                    clickableClass = 'mr-clickable';
+                    const pruningState = controller.vizData ? controller.vizData.pruningState : 'none';
+                    
+                    if (isFirstOccurrence) {
+                        iconHTML = '<span class="mr-icon">✂️</span>';
+                        onclickAttr = 'onclick="controller.handleMRClick(\'first\', this)"';
+                        if (pruningState === 'pruned-down') {
+                            activeClass = 'mr-active';
+                        }
+                    } else if (isSecondOccurrence) {
+                        iconHTML = '<span class="mr-icon">✂️</span>';
+                        onclickAttr = 'onclick="controller.handleMRClick(\'second\', this)"';
+                        if (pruningState === 'pruned-up') {
+                            activeClass = 'mr-active';
+                        }
+                    }
+                }
+                
+                const hiddenClass = controller.vizData && controller.vizData.isTupleHidden(item.index) ? 'hidden' : '';
+                
+                return `
+                    <div class="tuple-block block ${item.class} ${clickableClass} ${activeClass} ${hiddenClass}" 
+                         data-index="${item.index}" 
+                         id="t-${item.index}" 
+                         ${onclickAttr}>
+                        <div class="block-label">τ<sub>${item.index + 1}</sub></div>
+                        <div class="block-value">[${item.value.p},${item.value.fp},${item.value.m},${item.value.q}]</div>
+                        ${iconHTML}
+                    </div>
+                `;
+            }
+
+            /**
+             * Displays an error message in the container.
+             * 
+             * @static
+             * @param {string} message - Error message to display
+             * @param {HTMLElement} container - DOM container for the error
+             * @returns {void}
+             */
+            static showError(message, container) {
+                container.innerHTML = `<div class="error-message">${message}</div>`;
+                container.style.display = 'block';
+            }
+        }
+
+        /**
+         * Draws transformation arrows showing the dynamical isomorphism:
+         * - ƒ arrows: Collatz function in original space
+         * - ƒT arrows: Tuple transformation in tuple space
+         * - φ arrows: Forward mapping from Collatz pairs to tuples
+         * - φ⁻¹ arrows: Inverse mapping from tuples to Collatz pairs
+         * 
+         * Implements the visual proof of Theorem 3.11 (Dynamical Isomorphism).
+         * 
+         * @class ArrowDrawer
+         */
+        class ArrowDrawer {
+            /**
+             * Creates an arrow drawer for a visualization container.
+             * 
+             * @constructor
+             * @param {HTMLElement} container - Scrollable container holding the visualization
+             * @param {VisualizationData} vizData - Visualization data model
+             */
+            constructor(container, vizData) {
+                this.container = container;
+                this.vizData = vizData;
+            }
+
+            /**
+             * Calculates element coordinates relative to the scrollable container.
+             * Accounts for scroll position and container offset.
+             * 
+             * @private
+             * @param {HTMLElement} element - DOM element to measure
+             * @returns {Object} Coordinate object with left, right, top, bottom, width, height, centerX, centerY
+             */
+            _getCoords(element) {
+                const rect = element.getBoundingClientRect();
+                const containerRect = this.container.getBoundingClientRect();
+                
+                return {
+                    left: rect.left - containerRect.left + this.container.scrollLeft,
+                    right: rect.right - containerRect.left + this.container.scrollLeft,
+                    top: rect.top - containerRect.top + this.container.scrollTop,
+                    bottom: rect.bottom - containerRect.top + this.container.scrollTop,
+                    width: rect.width,
+                    height: rect.height,
+                    centerX: rect.left + rect.width / 2 - containerRect.left + this.container.scrollLeft,
+                    centerY: rect.top + rect.height / 2 - containerRect.top + this.container.scrollTop
+                };
+            }
+
+            /**
+             * Draws all transformation arrows for the complete visualization.
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * Renders four types of arrows:
+             * 1. Horizontal ƒ arrows: Collatz function (cᵢ → cᵢ₊₁)
+             * 2. Horizontal ƒT arrows: Tuple transformation (τᵢ → τᵢ₊₁)
+             * 3. Vertical φ arrows: Forward mapping ((cᵢ, cᵢ₊₁) → τᵢ)
+             * 4. Vertical φ⁻¹ arrows: Inverse mapping (τᵢ → (cᵢ, cᵢ₊₁))
+             * 
+             * All arrows are validated:
+             * - Green: Valid transformation preserving isomorphism
+             * - Red: Invalid transformation (occurs when pseudocycles are removed)
+             */
+            drawAll() {
+                const existingArrows = this.container.querySelectorAll('.arrow, .arrow-label');
+                existingArrows.forEach(el => el.remove());
+                
+                const existingSVGs = this.container.querySelectorAll('svg');
+                existingSVGs.forEach(el => el.remove());
+                
+                this.drawHorizontalCollatzArrows();
+                this.drawHorizontalTupleArrows();
+                this.drawVerticalPhiArrows();
+                this.drawVerticalPhiInverseArrows();
+            }
+
+            /**
+             * Draws horizontal ƒ arrows between consecutive Collatz elements.
+             * Validates each transformation: ƒ(cᵢ) = cᵢ₊₁
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * For each visible consecutive pair (cᵢ, cᵢ₊₁):
+             * - Computes expected value: ƒ(cᵢ)
+             * - Compares with actual value: cᵢ₊₁
+             * - Draws green arrow if valid, red if invalid
+             * 
+             * In pruned states, also draws error arrows across gaps where
+             * intermediate elements were removed, showing how the Collatz
+             * function breaks when pseudocycles are eliminated.
+             * 
+             * Tooltips display:
+             * - Which rule applies (n even → n/2, n odd → 3n+1)
+             * - Computed vs actual values
+             * - Validation status
+             */
+            drawHorizontalCollatzArrows() {
+                const collatzItems = this.vizData.getCollatzItems();
+                
+                for (let i = 0; i < collatzItems.length - 1; i++) {
+                    const current = collatzItems[i];
+                    const next = collatzItems[i + 1];
+                    
+                    if (this.vizData.isCollatzHidden(current.index) || 
+                        this.vizData.isCollatzHidden(next.index)) {
+                        continue;
+                    }
+                    
+                    const currentEl = document.getElementById(`c-${current.index}`);
+                    const nextEl = document.getElementById(`c-${next.index}`);
+                    
+                    if (!currentEl || !nextEl) continue;
+                    
+                    const currentCoords = this._getCoords(currentEl);
+                    const nextCoords = this._getCoords(nextEl);
+                    
+                    const ci = current.value;
+                    const ciPlus1 = next.value;
+                    const expectedNext = CollatzMath.f(ci);
+                    const isValid = (expectedNext === ciPlus1);
+                    const arrowColor = isValid ? CONFIG.COLORS.F_ARROW : CONFIG.COLORS.F_ARROW_ERROR;
+                    
+                    const isOdd = ci % 2 !== 0;
+                    const formula = isOdd ? `3 × ${ci} + 1` : `${ci} ÷ 2`;
+                    const rule = isOdd ? 'n odd → 3n + 1' : 'n even → n/2';
+                    
+                    const equationHTML = `
+                        <div class="equation-line"><strong>ƒ: c${current.index + 1} → c${next.index + 1}</strong></div>
+                        <div class="equation-line">c${current.index + 1} = ${ci} ${isOdd ? '(odd)' : '(even)'}</div>
+                        <div class="equation-line"><strong>Rule:</strong> ${rule}</div>
+                        <div class="equation-line">ƒ(${ci}) = ${formula} = ${expectedNext}</div>
+                        <div class="equation-line"><strong>Computed:</strong> ${expectedNext}</div>
+                        <div class="equation-line"><strong>Actual:</strong> c${next.index + 1} = ${ciPlus1}</div>
+                        <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
+                    `;
+                    
+                    this._drawHorizontalArrow(
+                        currentCoords.right,
+                        currentCoords.centerY,
+                        nextCoords.left,
+                        nextCoords.centerY,
+                        arrowColor,
+                        'ƒ',
+                        isValid,
+                        `c${current.index + 1} → c${next.index + 1}`,
+                        0,
+                        equationHTML,
+                        false
+                    );
+                }
+                
+                if (this.vizData.pruningState !== 'none') {
+                    for (let i = 0; i < collatzItems.length - 1; i++) {
+                        const current = collatzItems[i];
+                        
+                        if (this.vizData.isCollatzHidden(current.index)) continue;
+                        
+                        let nextVisibleIndex = -1;
+                        for (let j = i + 1; j < collatzItems.length; j++) {
+                            if (!this.vizData.isCollatzHidden(collatzItems[j].index)) {
+                                nextVisibleIndex = j;
+                                break;
+                            }
+                        }
+                        
+                        if (nextVisibleIndex === -1) continue;
+                        
+                        const nextVisible = collatzItems[nextVisibleIndex];
+                        
+                        if (nextVisibleIndex > i + 1) {
+                            const currentEl = document.getElementById(`c-${current.index}`);
+                            const nextEl = document.getElementById(`c-${nextVisible.index}`);
+                            
+                            if (!currentEl || !nextEl) continue;
+                            
+                            const currentCoords = this._getCoords(currentEl);
+                            const nextCoords = this._getCoords(nextEl);
+                            
+                            const ci = current.value;
+                            const ciJump = nextVisible.value;
+                            const expectedNext = CollatzMath.f(ci);
+                            const arrowColor = CONFIG.COLORS.F_ARROW_ERROR;
+                            
+                            const isOdd = ci % 2 !== 0;
+                            const formula = isOdd ? `3 × ${ci} + 1` : `${ci} ÷ 2`;
+                            const rule = isOdd ? 'n odd → 3n + 1' : 'n even → n/2';
+                            
+                            const equationHTML = `
+                                <div class="equation-line"><strong>ƒ: c${current.index + 1} → c${nextVisible.index + 1}</strong></div>
+                                <div class="equation-line">c${current.index + 1} = ${ci} ${isOdd ? '(odd)' : '(even)'}</div>
+                                <div class="equation-line"><strong>Rule:</strong> ${rule}</div>
+                                <div class="equation-line">ƒ(${ci}) = ${formula} = ${expectedNext}</div>
+                                <div class="equation-line"><strong>Computed:</strong> ${expectedNext}</div>
+                                <div class="equation-line"><strong>Actual:</strong> c${nextVisible.index + 1} = ${ciJump}</div>
+                                <div class="equation-line"><strong>Invalid - Missing intermediate pseudocycle</strong></div>
+                            `;
+                            
+                            this._drawHorizontalArrow(
+                                currentCoords.right,
+                                currentCoords.centerY,
+                                nextCoords.left,
+                                nextCoords.centerY,
+                                arrowColor,
+                                'ƒ',
+                                false,
+                                `c${current.index + 1} → c${nextVisible.index + 1}`,
+                                0,
+                                equationHTML,
+                                false
+                            );
+                        }
+                    }
+                }
+            }
+
+            /**
+             * Draws horizontal ƒT arrows between consecutive tuple elements.
+             * Validates tuple transformation according to Definition 3.1.
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * For each consecutive tuple pair (τᵢ, τᵢ₊₁):
+             * - Applies transformation rule based on parity of p:
+             *   - p odd: m′ = 3m + 1, p′ = 2
+             *   - p even, m odd: m′ = ⌊m/2⌋, p′ = 2
+             *   - p even, m even: m′ = ⌊m/2⌋, p′ = 1
+             * - Validates computed tuple matches actual tuple
+             * - Draws green arrow if valid, red if invalid
+             * 
+             * In pruned states, draws error arrows showing how the tuple
+             * transformation breaks when intermediate elements are removed.
+             * 
+             * This mirrors the Collatz function behavior at the parameter level,
+             * demonstrating the "3m+1" self-similarity mentioned in Remark 3.12.
+             */
+            drawHorizontalTupleArrows() {
+                const tupleItems = this.vizData.getTupleItems();
+                
+                for (let i = 0; i < tupleItems.length - 1; i++) {
+                    const current = tupleItems[i];
+                    const next = tupleItems[i + 1];
+                    
+                    if (this.vizData.isTupleHidden(current.index) || 
+                        this.vizData.isTupleHidden(next.index)) {
+                        continue;
+                    }
+                    
+                    const currentEl = document.getElementById(`t-${current.index}`);
+                    const nextEl = document.getElementById(`t-${next.index}`);
+                    
+                    if (!currentEl || !nextEl) continue;
+                    
+                    const currentCoords = this._getCoords(currentEl);
+                    const nextCoords = this._getCoords(nextEl);
+                    
+                    const arrowColor = CONFIG.COLORS.F_ARROW;
+                    const tau = current.value;
+                    const nextTau = next.value;
+                    
+                    let nextP_computed;
+                    let nextM_computed;
+                    let formula;
+                    let rule;
+                    
+                    if (tau.p === 1) {
+                        nextM_computed = 3 * tau.m + 1;
+                        nextP_computed = 2;
+                        formula = `3m + 1 = 3 × ${tau.m} + 1 = ${nextM_computed}`;
+                        rule = 'p odd → m′ = 3m + 1, p′ = 2';
+                    } else {
+                        nextM_computed = Math.floor(tau.m / 2);
+                        if (tau.m % 2 === 1) {
+                            nextP_computed = 2;
+                            rule = 'p even, m odd → m′ = ⌊m/2⌋, p′ = 2';
+                        } else {
+                            nextP_computed = 1;
+                            rule = 'p even, m even → m′ = ⌊m/2⌋, p′ = 1';
+                        }
+                        formula = `⌊m/2⌋ = ⌊${tau.m}/2⌋ = ${nextM_computed}`;
+                    }
+                    
+                    const nextFp_computed = nextP_computed === 2 ? 1 : 4;
+                    const isValid = (nextP_computed === nextTau.p && 
+                                   nextM_computed === nextTau.m && 
+                                   nextFp_computed === nextTau.fp);
+                    
+                    const parityInfo = tau.p === 1 ? 
+                        '(p=1, odd)' : 
+                        (tau.m % 2 === 1 ? '(p=2 even, m odd)' : '(p=2 even, m even)');
+                    const nextParityInfo = nextP_computed === 2 ? '(even)' : '(odd)';
+                    
+                    const equationHTML = `
+                        <div class="equation-line"><strong>ƒ<sub>T</sub>: τ${current.index + 1} → τ${next.index + 1}</strong></div>
+                        <div class="equation-line">τ${current.index + 1} = [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}] ${parityInfo}</div>
+                        <div class="equation-line"><strong>Rule:</strong> ${rule}</div>
+                        <div class="equation-line">${formula}</div>
+                        <div class="equation-line">p′ = ${nextP_computed} ${nextParityInfo}, f(p′) = ${nextFp_computed}</div>
+                        <div class="equation-line"><strong>Computed:</strong> [${nextP_computed}, ${nextFp_computed}, ${nextM_computed}, ${tau.q}]</div>
+                        <div class="equation-line"><strong>Actual:</strong> τ${next.index + 1} = [${nextTau.p}, ${nextTau.fp}, ${nextTau.m}, ${nextTau.q}]</div>
+                        <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
+                    `;
+                    
+                    this._drawHorizontalArrow(
+                        currentCoords.right,
+                        currentCoords.centerY,
+                        nextCoords.left,
+                        nextCoords.centerY,
+                        isValid ? arrowColor : CONFIG.COLORS.F_ARROW_ERROR,
+                        'ƒ<sub>T</sub>',
+                        isValid,
+                        `τ${current.index + 1} → τ${next.index + 1}`,
+                        0,
+                        equationHTML,
+                        false
+                    );
+                }
+                
+                if (this.vizData.pruningState !== 'none') {
+                    for (let i = 0; i < tupleItems.length - 1; i++) {
+                        const current = tupleItems[i];
+                        
+                        if (this.vizData.isTupleHidden(current.index)) continue;
+                        
+                        let nextVisibleIndex = -1;
+                        for (let j = i + 1; j < tupleItems.length; j++) {
+                            if (!this.vizData.isTupleHidden(tupleItems[j].index)) {
+                                nextVisibleIndex = j;
+                                break;
+                            }
+                        }
+                        
+                        if (nextVisibleIndex === -1) continue;
+                        
+                        const nextVisible = tupleItems[nextVisibleIndex];
+                        
+                        if (nextVisibleIndex > i + 1) {
+                            const currentEl = document.getElementById(`t-${current.index}`);
+                            const nextEl = document.getElementById(`t-${nextVisible.index}`);
+                            
+                            if (!currentEl || !nextEl) continue;
+                            
+                            const currentCoords = this._getCoords(currentEl);
+                            const nextCoords = this._getCoords(nextEl);
+                            
+                            const tau = current.value;
+                            const nextTau = nextVisible.value;
+                            
+                            let nextP_computed, nextM_computed, formula, rule;
+                            
+                            if (tau.p === 1) {
+                                nextM_computed = 3 * tau.m + 1;
+                                nextP_computed = 2;
+                                formula = `3m + 1 = 3 × ${tau.m} + 1 = ${nextM_computed}`;
+                                rule = 'p odd → m′ = 3m + 1, p′ = 2';
+                            } else {
+                                nextM_computed = Math.floor(tau.m / 2);
+                                if (tau.m % 2 === 1) {
+                                    nextP_computed = 2;
+                                    rule = 'p even, m odd → m′ = ⌊m/2⌋, p′ = 2';
+                                } else {
+                                    nextP_computed = 1;
+                                    rule = 'p even, m even → m′ = ⌊m/2⌋, p′ = 1';
+                                }
+                                formula = `⌊m/2⌋ = ⌊${tau.m}/2⌋ = ${nextM_computed}`;
+                            }
+                            
+                            const nextFp_computed = nextP_computed === 2 ? 1 : 4;
+                            const parityInfo = tau.p === 1 ? '(p=1, odd)' : 
+                                (tau.m % 2 === 1 ? '(p=2 even, m odd)' : '(p=2 even, m even)');
+                            
+                            const equationHTML = `
+                                <div class="equation-line"><strong>ƒ<sub>T</sub>: τ${current.index + 1} → τ${nextVisible.index + 1}</strong></div>
+                                <div class="equation-line">τ${current.index + 1} = [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}] ${parityInfo}</div>
+                                <div class="equation-line"><strong>Rule:</strong> ${rule}</div>
+                                <div class="equation-line">${formula}</div>
+                                <div class="equation-line"><strong>Computed:</strong> [${nextP_computed}, ${nextFp_computed}, ${nextM_computed}, ${tau.q}]</div>
+                                <div class="equation-line"><strong>Actual:</strong> τ${nextVisible.index + 1} = [${nextTau.p}, ${nextTau.fp}, ${nextTau.m}, ${nextTau.q}]</div>
+                                <div class="equation-line"><strong>Invalid - Missing intermediate pseudocycle</strong></div>
+                            `;
+                            
+                            this._drawHorizontalArrow(
+                                currentCoords.right,
+                                currentCoords.centerY,
+                                nextCoords.left,
+                                nextCoords.centerY,
+                                CONFIG.COLORS.F_ARROW_ERROR,
+                                'ƒ<sub>T</sub>',
+                                false,
+                                `τ${current.index + 1} → τ${nextVisible.index + 1}`,
+                                0,
+                                equationHTML,
+                                false
+                            );
+                        }
+                    }
+                }
+            }
+
+            /**
+             * Draws φ arrows mapping consecutive Collatz pairs (cᵢ, cᵢ₊₁) to tuples τᵢ.
+             * Validates that both reconstruction paths yield the same m value.
+             * Implements the forward direction of the dynamical isomorphism (Lemma 3.4).
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * The φ mapping is the forward direction of the dynamical isomorphism:
+             * φ: (cᵢ, cᵢ₊₁) → τᵢ = [p, f(p), m, q]
+             * 
+             * For each visible tuple τᵢ, draws a U-shaped arrow from the pair (cᵢ, cᵢ₊₁) down to τᵢ.
+             * 
+             * Validation checks two independent paths to compute m:
+             * - Path 1 (from cᵢ): m = (cᵢ - p) / (2q)
+             * - Path 2 (from cᵢ₊₁): m = (cᵢ₊₁ - f(p)) / q if p even, or (cᵢ₊₁ - f(p)) / (6q) if p odd
+             * 
+             * Both paths must yield identical m values for φ to be well-defined and bijective.
+             * 
+             * In pruned states, when pseudocycles are removed:
+             * - Orphaned tuples attempt to map from incorrect Collatz pairs
+             * - The two paths compute different m values (divergence)
+             * - Red error arrows indicate broken φ mapping
+             * - Detailed tooltips show exactly where and why the mapping fails
+             * 
+             * This visual proof demonstrates that pseudocycles cannot be removed without
+             * destroying the topological isomorphic structure.
+             */
+            drawVerticalPhiArrows() {
+                const tupleItems = this.vizData.getTupleItems();
+                const maxIndex = this.vizData.sequence.length - 1;
+                
+                tupleItems.forEach(tupleItem => {
+                    const tupleIndex = tupleItem.index;
+                    
+                    if (this.vizData.isTupleHidden(tupleIndex)) return;
+                    
+                    const tupleEl = document.getElementById(`t-${tupleIndex}`);
+                    const c1El = document.getElementById(`c-${tupleIndex}`);
+                    const c2El = document.getElementById(`c-${tupleIndex + 1}`);
+                    
+                    if (!tupleEl || !c1El || !c2El) return;
+                    
+                    if (this.vizData.isCollatzHidden(tupleIndex) || 
+                        this.vizData.isCollatzHidden(tupleIndex + 1)) return;
+                    
+                    const c1Coords = this._getCoords(c1El);
+                    const c2Coords = this._getCoords(c2El);
+                    const tupleCoords = this._getCoords(tupleEl);
+                    
+                    const tau = tupleItem.value;
+                    const ci = this.vizData.sequence[tupleIndex];
+                    const ciPlus1 = this.vizData.sequence[tupleIndex + 1];
+                    
+                    const p = ci % 2 === 0 ? 2 : 1;
+                    const fp = p === 2 ? 1 : 4;
+                    const q = 1;
+                    const m = (ci - p) / (2 * q);
+                    
+                    const mFromCi = (ci - p) / (2 * q);
+                    const mFromCiPlus1 = p === 2 ? (ciPlus1 - fp) / q : (ciPlus1 - fp) / (6 * q);
+                    
+                    const isValid = (tau.p === p && tau.fp === fp && tau.m === m && tau.q === q);
+                    const color = isValid ? CONFIG.COLORS.PHI_ARROW : CONFIG.COLORS.PHI_ARROW_ERROR;
+                    
+                    const equationHTML = `
+                        <div class="equation-line"><strong>φ: (c${tupleIndex + 1}, c${tupleIndex + 2}) → τ${tupleIndex + 1}</strong></div>
+                        <div class="equation-line">c${tupleIndex + 1} = ${ci} ${ci % 2 === 0 ? '(even)' : '(odd)'}</div>
+                        <div class="equation-line">c${tupleIndex + 2} = ${ciPlus1}</div>
+                        <div class="equation-line"><strong>Rule:</strong> p = parity, m from both paths must match</div>
+                        <div class="equation-line">p = ${p}, f(p) = ${fp}, q = ${q}</div>
+                        <div class="equation-line"><strong>Path 1 (from c${tupleIndex + 1}):</strong> m = (${ci} - ${p}) ÷ (2 × ${q}) = ${mFromCi}</div>
+                        <div class="equation-line"><strong>Path 2 (from c${tupleIndex + 2}):</strong> m = (${ciPlus1} - ${fp}) ÷ ${p === 2 ? q : `(6 × ${q})`} = ${mFromCiPlus1}</div>
+                        <div class="equation-line"><strong>Computed:</strong> [${p}, ${fp}, ${m}, ${q}]</div>
+                        <div class="equation-line"><strong>Actual:</strong> τ${tupleIndex + 1} = [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}]</div>
+                        <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
+                    `;
+                    
+                    const extraOffset = 0;
+                    const isFirst = (tupleIndex === 0);
+                    const isLast = (tupleIndex + 1 === maxIndex);
+                    
+                    this._drawUShapePhiArrow(
+                        c1Coords.centerX,
+                        c1Coords.bottom,
+                        c2Coords.centerX,
+                        c2Coords.bottom,
+                        tupleCoords.centerX,
+                        tupleCoords.top,
+                        color,
+                        extraOffset,
+                        isValid,
+                        isFirst,
+                        isLast,
+                        equationHTML
+                    );
+                });
+                
+                if (this.vizData.pruningState !== 'none') {
+                    const collatzItems = this.vizData.getCollatzItems();
+                    
+                    tupleItems.forEach(tupleItem => {
+                        const tupleIndex = tupleItem.index;
+                        
+                        if (this.vizData.isTupleHidden(tupleIndex)) return;
+                        
+                        const c1Index = tupleIndex;
+                        const c2Index = tupleIndex + 1;
+                        
+                        const c1Hidden = this.vizData.isCollatzHidden(c1Index);
+                        const c2Hidden = this.vizData.isCollatzHidden(c2Index);
+                        
+                        if (c1Hidden || c2Hidden) {
+                            let nearestC1Index = c1Index;
+                            let nearestC2Index = c2Index;
+                            
+                            if (c1Hidden) {
+                                for (let i = c1Index - 1; i >= 0; i--) {
+                                    if (!this.vizData.isCollatzHidden(i)) {
+                                        nearestC1Index = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (c2Hidden) {
+                                for (let i = c2Index + 1; i < this.vizData.sequence.length; i++) {
+                                    if (!this.vizData.isCollatzHidden(i)) {
+                                        nearestC2Index = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (nearestC1Index !== c1Index || nearestC2Index !== c2Index) {
+                                const tupleEl = document.getElementById(`t-${tupleIndex}`);
+                                const nearestC1El = document.getElementById(`c-${nearestC1Index}`);
+                                const nearestC2El = document.getElementById(`c-${nearestC2Index}`);
+                                
+                                if (!tupleEl || !nearestC1El || !nearestC2El) return;
+                                
+                                const c1Coords = this._getCoords(nearestC1El);
+                                const c2Coords = this._getCoords(nearestC2El);
+                                const tupleCoords = this._getCoords(tupleEl);
+                                
+                                const tau = tupleItem.value;
+                                const ci = this.vizData.sequence[nearestC1Index];
+                                const ciPlus1 = this.vizData.sequence[nearestC2Index];
+                                
+                                const p_fromCi = ci % 2 === 0 ? 2 : 1;
+                                const fp_fromCi = p_fromCi === 2 ? 1 : 4;
+                                const q = 1;
+                                
+                                const mFromCi = (ci - p_fromCi) / (2 * q);
+                                
+                                const mFromCiPlus1 = p_fromCi === 2 ? 
+                                    (ciPlus1 - fp_fromCi) / q : 
+                                    (ciPlus1 - fp_fromCi) / (6 * q);
+                                
+                                const path1MatchesP = (p_fromCi === tau.p);
+                                const path1MatchesFp = (fp_fromCi === tau.fp);
+                                const path1MatchesM = (Math.abs(mFromCi - tau.m) < 0.0001);
+                                const path1Valid = path1MatchesP && path1MatchesFp && path1MatchesM;
+                                
+                                const path2MatchesM = (Math.abs(mFromCiPlus1 - tau.m) < 0.0001);
+                                const path2Valid = path2MatchesM;
+                                
+                                const pathsMatch = (Math.abs(mFromCi - mFromCiPlus1) < 0.0001);
+                                
+                                const c1Wrong = nearestC1Index !== tupleIndex;
+                                const c2Wrong = nearestC2Index !== (tupleIndex + 1);
+                                
+                                let blockStatus = '';
+                                if (c1Wrong && c2Wrong) {
+                                    blockStatus = `Both blocks wrong! Expected (c${tupleIndex + 1}, c${tupleIndex + 2})`;
+                                } else if (c1Wrong) {
+                                    blockStatus = `First block wrong! Expected c${tupleIndex + 1}, got c${nearestC1Index + 1}`;
+                                } else if (c2Wrong) {
+                                    blockStatus = `Second block wrong! Expected c${tupleIndex + 2}, got c${nearestC2Index + 1}`;
+                                }
+                                
+                                const equationHTML = `
+                                    <div class="equation-line"><strong>φ: (c${nearestC1Index + 1}, c${nearestC2Index + 1}) → τ${tupleIndex + 1}</strong></div>
+                                    <div class="equation-line" style="background: rgba(245, 158, 11, 0.2);">⚠️ ${blockStatus}</div>
+                                    <div class="equation-line">c${nearestC1Index + 1} = ${ci} ${ci % 2 === 0 ? '(even)' : '(odd)'}</div>
+                                    <div class="equation-line">c${nearestC2Index + 1} = ${ciPlus1}</div>
+                                    <div class="equation-line"><strong>Rule:</strong> Both paths must yield same m, and match τ.m</div>
+                                    <div class="equation-line">Derived: p = ${p_fromCi}, f(p) = ${fp_fromCi}, q = ${q}</div>
+                                    <div class="equation-line" style="background: ${path1Valid ? 'rgba(5, 150, 105, 0.2)' : 'rgba(220, 38, 38, 0.2)'};">
+                                        <strong>Path 1 (from c${nearestC1Index + 1}):</strong> m = (${ci} - ${p_fromCi}) ÷ (2 × ${q}) = ${mFromCi.toFixed(0)}
+                                        ${path1Valid ? ' ✓' : ` ❌`}
+                                    </div>
+                                    <div class="equation-line" style="background: ${path2Valid ? 'rgba(5, 150, 105, 0.2)' : 'rgba(220, 38, 38, 0.2)'};">
+                                        <strong>Path 2 (from c${nearestC2Index + 1}):</strong> m = (${ciPlus1} - ${fp_fromCi}) ÷ ${p_fromCi === 2 ? q : `(6 × ${q})`} = ${mFromCiPlus1.toFixed(0)}
+                                        ${path2Valid ? ' ✓' : ` ❌`}
+                                    </div>
+                                    <div class="equation-line" style="background: rgba(220, 38, 38, 0.3); font-weight: bold;">
+                                        ${!pathsMatch ? `❌ DIVERGENCE: m₁=${mFromCi.toFixed(0)} ≠ m₂=${mFromCiPlus1.toFixed(0)}` : ''}
+                                        ${pathsMatch && !path1Valid ? `❌ Paths agree (m=${mFromCi.toFixed(0)}) but ≠ τ.m=${tau.m}` : ''}
+                                    </div>
+                                    <div class="equation-line"><strong>Computed:</strong> [${p_fromCi}, ${fp_fromCi}, m₁:${mFromCi.toFixed(0)} / m₂:${mFromCiPlus1.toFixed(0)}, ${q}]</div>
+                                    <div class="equation-line"><strong>Actual τ${tupleIndex + 1}:</strong> [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}]</div>
+                                    <div class="equation-line"><strong>Invalid - Pseudocycle removal broke φ!</strong></div>
+                                `;
+                                
+                                const isMR = this.vizData.repeatedInfo && 
+                                    (tupleIndex === this.vizData.repeatedInfo.firstOccurrenceIndex || 
+                                    tupleIndex === this.vizData.repeatedInfo.firstRepeatedIndex);
+                                
+                                const orphanOffset = isMR ? 0 : 10;
+                                
+                                this._drawUShapePhiArrow(
+                                    c1Coords.centerX,
+                                    c1Coords.bottom,
+                                    c2Coords.centerX,
+                                    c2Coords.bottom,
+                                    tupleCoords.centerX,
+                                    tupleCoords.top,
+                                    CONFIG.COLORS.PHI_ARROW_ERROR,
+                                    orphanOffset,
+                                    false,
+                                    false,
+                                    false,
+                                    equationHTML
+                                );
+                            }
+                        }
+                    });
+                }
+            }
+
+            /**
+             * Draws U-shaped φ arrow connecting two Collatz blocks to one tuple block.
+             * Uses solid lines for valid mappings, adjusts offsets for first/last positions.
+             * 
+             * @private
+             * @param {number} x1 - X coordinate of first Collatz block center
+             * @param {number} y1 - Y coordinate of first Collatz block bottom
+             * @param {number} x2 - X coordinate of second Collatz block center
+             * @param {number} y2 - Y coordinate of second Collatz block bottom
+             * @param {number} xCenter - X coordinate of tuple block center
+             * @param {number} yBottom - Y coordinate of tuple block top
+             * @param {string} color - Arrow color (green for valid, red for error)
+             * @param {number} extraOffset - Additional horizontal offset for orphaned arrows
+             * @param {boolean} isValid - Whether the mapping is valid
+             * @param {boolean} isFirst - Whether this is the first tuple in sequence
+             * @param {boolean} isLast - Whether this is the last tuple in sequence
+             * @param {string} equationHTML - HTML content for tooltip with validation details
+             * @returns {void}
+             * 
+             * @description
+             * Creates a U-shaped arrow with three segments:
+             * 1. Left vertical line from first Collatz block downward
+             * 2. Horizontal line connecting both descent points
+             * 3. Right vertical line from second Collatz block downward
+             * 4. Center vertical line with arrowhead pointing to tuple
+             * 
+             * Offsets are adjusted to avoid overlapping with horizontal ƒ arrows:
+             * - First tuple: Left offset adjusted to avoid overlap with initial spacing
+             * - Last tuple: Right offset adjusted to avoid overlap with final spacing
+             * - Middle tuples: Standard offsets
+             * 
+             * The φ label is positioned to the left of the tuple block with
+             * interactive tooltip showing the validation equations.
+             */
+            _drawUShapePhiArrow(x1, y1, x2, y2, xCenter, yBottom, color, extraOffset = 0, isValid = true, isFirst = false, isLast = false, equationHTML = '') {
+                const tupleOffset = -25 - extraOffset;
+                const adjustedXCenter = xCenter + tupleOffset;
+                
+                let c1Offset = 0;
+                let c2Offset = 0;
+                
+                if (isFirst) {
+                    c1Offset = 25;
+                } else {
+                    c1Offset = 25;
+                }
+                
+                if (isLast) {
+                    c2Offset = -25;
+                } else {
+                    c2Offset = -25;
+                }
+                
+                const adjustedX1 = x1 + c1Offset;
+                const adjustedX2 = x2 + c2Offset;
+                
+                const leftLine = document.createElement('div');
+                leftLine.className = 'arrow';
+                leftLine.style.position = 'absolute';
+                leftLine.style.left = (adjustedX1 - CONFIG.ARROW_THICKNESS / 2) + 'px';
+                leftLine.style.top = y1 + 'px';
+                leftLine.style.width = CONFIG.ARROW_THICKNESS + 'px';
+                leftLine.style.height = ((yBottom - y1) * 0.2) + 'px';
+                leftLine.style.background = color;
+                leftLine.style.zIndex = '5';
+                this.container.appendChild(leftLine);
+                
+                const rightLine = document.createElement('div');
+                rightLine.className = 'arrow';
+                rightLine.style.position = 'absolute';
+                rightLine.style.left = (adjustedX2 - CONFIG.ARROW_THICKNESS / 2) + 'px';
+                rightLine.style.top = y2 + 'px';
+                rightLine.style.width = CONFIG.ARROW_THICKNESS + 'px';
+                rightLine.style.height = ((yBottom - y2) * 0.2) + 'px';
+                rightLine.style.background = color;
+                rightLine.style.zIndex = '5';
+                this.container.appendChild(rightLine);
+                
+                const midY = y1 + (yBottom - y1) * 0.2;
+                const minX = Math.min(adjustedX1, adjustedX2, adjustedXCenter);
+                const maxX = Math.max(adjustedX1, adjustedX2, adjustedXCenter);
+                const horizontalLine = document.createElement('div');
+                horizontalLine.className = 'arrow';
+                horizontalLine.style.position = 'absolute';
+                horizontalLine.style.left = minX + 'px';
+                horizontalLine.style.top = (midY - CONFIG.ARROW_THICKNESS / 2) + 'px';
+                horizontalLine.style.width = (maxX - minX) + 'px';
+                horizontalLine.style.height = CONFIG.ARROW_THICKNESS + 'px';
+                horizontalLine.style.background = color;
+                horizontalLine.style.zIndex = '5';
+                this.container.appendChild(horizontalLine);
+                
+                const centerLine = document.createElement('div');
+                centerLine.className = 'arrow';
+                centerLine.style.position = 'absolute';
+                centerLine.style.left = (adjustedXCenter - CONFIG.ARROW_THICKNESS / 2) + 'px';
+                centerLine.style.top = midY + 'px';
+                centerLine.style.width = CONFIG.ARROW_THICKNESS + 'px';
+                centerLine.style.height = (yBottom - midY) + 'px';
+                centerLine.style.background = color;
+                centerLine.style.zIndex = '5';
+                
+                const head = document.createElement('div');
+                head.style.position = 'absolute';
+                head.style.left = '50%';
+                head.style.bottom = '0';
+                head.style.transform = 'translateX(-50%)';
+                head.style.width = '0';
+                head.style.height = '0';
+                head.style.borderTop = `${CONFIG.ARROW_HEAD_SIZE}px solid ${color}`;
+                head.style.borderLeft = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                head.style.borderRight = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                centerLine.appendChild(head);
+                
+                this.container.appendChild(centerLine);
+                
+                const labelEl = document.createElement('div');
+                labelEl.className = 'arrow-label';
+                labelEl.innerHTML = 'φ';
+                labelEl.style.position = 'absolute';
+                const tupleLeftEdge = xCenter - 90;
+                labelEl.style.left = tupleLeftEdge + 'px'; 
+                labelEl.style.top = (yBottom - 50) + 'px';
+                labelEl.style.transform = 'none';
+                labelEl.style.background = isValid ? '#10b981' : '#7f1d1d';
+                labelEl.style.border = `2px solid ${color}`;
+                
+                labelEl.addEventListener('mouseenter', () => {
+                    TooltipManager.show(labelEl, equationHTML || `φ transform: (cᵢ, cᵢ₊₁) → τᵢ ${isValid ? 'Valid' : 'Invalid'}`, true);
+                });
+                labelEl.addEventListener('mouseleave', () => {
+                    TooltipManager.hide();
+                });
+                
+                this.container.appendChild(labelEl);
+            }
+
+            /**
+             * Draws φ⁻¹ arrows mapping tuples τᵢ back to Collatz pairs (cᵢ, cᵢ₊₁).
+             * Validates reconstruction formulas: cᵢ = 2qm + p, cᵢ₊₁ depends on p parity.
+             * Implements the inverse direction of the dynamical isomorphism (Lemma 3.4).
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * The φ⁻¹ mapping is the inverse direction of the dynamical isomorphism:
+             * φ⁻¹: τᵢ = [p, f(p), m, q] → (cᵢ, cᵢ₊₁)
+             * 
+             * For each visible tuple τᵢ, draws an inverted U-shaped arrow (dashed lines)
+             * from τᵢ up to the pair (cᵢ, cᵢ₊₁).
+             * 
+             * Reconstruction formulas:
+             * - cᵢ = 2qm + p (always, regardless of parity)
+             * - cᵢ₊₁ = qm + f(p) if p is even (p=2)
+             * - cᵢ₊₁ = 6qm + f(p) if p is odd (p=1)
+             * 
+             * Both paths must reconstruct the correct Collatz values for φ⁻¹ to be well-defined.
+             * 
+             * In pruned states, when pseudocycles are removed:
+             * - Tuples attempt to reconstruct incorrect Collatz pairs (wrong indices)
+             * - Reconstruction formulas yield values that don't match actual visible blocks
+             * - Red dashed error arrows indicate broken φ⁻¹ mapping
+             * - Tooltips show exact reconstruction failures and which blocks are wrong
+             * 
+             * Visual proof: Uses dashed lines to distinguish from φ arrows (solid lines).
+             * Together with drawVerticalPhiArrows, this demonstrates the bidirectional
+             * nature of the isomorphism and how pseudocycle removal breaks both directions.
+             */
+            drawVerticalPhiInverseArrows() {
+                const tupleItems = this.vizData.getTupleItems();
+                const maxIndex = this.vizData.sequence.length - 1;
+                
+                tupleItems.forEach(tupleItem => {
+                    const tupleIndex = tupleItem.index;
+                    
+                    if (this.vizData.isTupleHidden(tupleIndex)) return;
+                    
+                    const tupleEl = document.getElementById(`t-${tupleIndex}`);
+                    const c1El = document.getElementById(`c-${tupleIndex}`);
+                    const c2El = document.getElementById(`c-${tupleIndex + 1}`);
+                    
+                    if (!tupleEl || !c1El || !c2El) return;
+                    if (this.vizData.isCollatzHidden(tupleIndex) || 
+                        this.vizData.isCollatzHidden(tupleIndex + 1)) return;
+                    
+                    const c1Coords = this._getCoords(c1El);
+                    const c2Coords = this._getCoords(c2El);
+                    const tupleCoords = this._getCoords(tupleEl);
+                    
+                    const tau = tupleItem.value;
+                    const ci = this.vizData.sequence[tupleIndex];
+                    const ciPlus1 = this.vizData.sequence[tupleIndex + 1];
+                    
+                    const reconstructedCi = 2 * tau.q * tau.m + tau.p;
+                    
+                    let reconstructedCiPlus1;
+                    let ciPlus1Formula;
+                    
+                    if (tau.p === 2) {
+                        reconstructedCiPlus1 = tau.q * tau.m + tau.fp;
+                        ciPlus1Formula = `${tau.q} × ${tau.m} + ${tau.fp}`;
+                    } else {
+                        reconstructedCiPlus1 = 6 * tau.q * tau.m + tau.fp;
+                        ciPlus1Formula = `6 × ${tau.q} × ${tau.m} + ${tau.fp}`;
+                    }
+                    
+                    const isValid = (reconstructedCi === ci && reconstructedCiPlus1 === ciPlus1);
+                    const color = isValid ? CONFIG.COLORS.PHI_INV_ARROW : CONFIG.COLORS.PHI_INV_ARROW_ERROR;
+                    
+                    const rule = tau.p === 2 ? 
+                        'p even → c_{i+1} = qm + f(p)' : 
+                        'p odd → c_{i+1} = 6qm + f(p)';
+                    
+                    const equationHTML = `
+                        <div class="equation-line"><strong>φ⁻¹: τ${tupleIndex + 1} → (c${tupleIndex + 1}, c${tupleIndex + 2})</strong></div>
+                        <div class="equation-line">τ${tupleIndex + 1} = [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}]</div>
+                        <div class="equation-line"><strong>Rules:</strong> c_i = 2qm + p, ${rule}</div>
+                        <div class="equation-line"><strong>Path 1 (to c${tupleIndex + 1}):</strong> c${tupleIndex + 1} = 2 × ${tau.q} × ${tau.m} + ${tau.p} = ${reconstructedCi}</div>
+                        <div class="equation-line"><strong>Path 2 (to c${tupleIndex + 2}):</strong> c${tupleIndex + 2} = ${ciPlus1Formula} = ${reconstructedCiPlus1}</div>
+                        <div class="equation-line"><strong>Computed:</strong> (${reconstructedCi}, ${reconstructedCiPlus1})</div>
+                        <div class="equation-line"><strong>Actual:</strong> (c${tupleIndex + 1}, c${tupleIndex + 2}) = (${ci}, ${ciPlus1})</div>
+                        <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
+                    `;
+                    
+                    const extraOffset = 0;
+                    const isFirst = (tupleIndex === 0);
+                    const isLast = (tupleIndex + 1 === maxIndex);
+                    
+                    this._drawInvertedUShapePhiInverseArrow(
+                        tupleCoords.centerX,
+                        tupleCoords.top,
+                        c1Coords.centerX,
+                        c1Coords.bottom,
+                        c2Coords.centerX,
+                        c2Coords.bottom,
+                        color,
+                        extraOffset,
+                        isValid,
+                        isFirst,
+                        isLast,
+                        equationHTML
+                    );
+                });
+                   
+                if (this.vizData.pruningState !== 'none') {
+                    tupleItems.forEach(tupleItem => {
+                        const tupleIndex = tupleItem.index;
+                        
+                        if (this.vizData.isTupleHidden(tupleIndex)) return;
+                        
+                        const c1Index = tupleIndex;
+                        const c2Index = tupleIndex + 1;
+                        
+                        const c1Hidden = this.vizData.isCollatzHidden(c1Index);
+                        const c2Hidden = this.vizData.isCollatzHidden(c2Index);
+                        
+                        if (c1Hidden || c2Hidden) {
+                            let nearestC1Index = c1Index;
+                            let nearestC2Index = c2Index;
+                            
+                            if (c1Hidden) {
+                                for (let i = c1Index - 1; i >= 0; i--) {
+                                    if (!this.vizData.isCollatzHidden(i)) {
+                                        nearestC1Index = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (c2Hidden) {
+                                for (let i = c2Index + 1; i < this.vizData.sequence.length; i++) {
+                                    if (!this.vizData.isCollatzHidden(i)) {
+                                        nearestC2Index = i;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (nearestC1Index !== c1Index || nearestC2Index !== c2Index) {
+                                const tupleEl = document.getElementById(`t-${tupleIndex}`);
+                                const nearestC1El = document.getElementById(`c-${nearestC1Index}`);
+                                const nearestC2El = document.getElementById(`c-${nearestC2Index}`);
+                                
+                                if (!tupleEl || !nearestC1El || !nearestC2El) return;
+                                
+                                const c1Coords = this._getCoords(nearestC1El);
+                                const c2Coords = this._getCoords(nearestC2El);
+                                const tupleCoords = this._getCoords(tupleEl);
+                                
+                                const tau = tupleItem.value;
+                                const actualCi = this.vizData.sequence[nearestC1Index];
+                                const actualCiPlus1 = this.vizData.sequence[nearestC2Index];
+                                
+                                const reconstructedCi = 2 * tau.q * tau.m + tau.p;
+                                
+                                let reconstructedCiPlus1;
+                                let ciPlus1Formula;
+                                
+                                if (tau.p === 2) {
+                                    reconstructedCiPlus1 = tau.q * tau.m + tau.fp;
+                                    ciPlus1Formula = `${tau.q} × ${tau.m} + ${tau.fp}`;
+                                } else {
+                                    reconstructedCiPlus1 = 6 * tau.q * tau.m + tau.fp;
+                                    ciPlus1Formula = `6 × ${tau.q} × ${tau.m} + ${tau.fp}`;
+                                }
+                                
+                                const path1Valid = (reconstructedCi === actualCi);
+                                const path2Valid = (reconstructedCiPlus1 === actualCiPlus1);
+                                
+                                const c1Wrong = nearestC1Index !== tupleIndex;
+                                const c2Wrong = nearestC2Index !== (tupleIndex + 1);
+                                
+                                let blockStatus = '';
+                                if (c1Wrong && c2Wrong) {
+                                    blockStatus = `Both blocks wrong! Expected (c${tupleIndex + 1}, c${tupleIndex + 2})`;
+                                } else if (c1Wrong) {
+                                    blockStatus = `First block wrong! Expected c${tupleIndex + 1}, got c${nearestC1Index + 1}`;
+                                } else if (c2Wrong) {
+                                    blockStatus = `Second block wrong! Expected c${tupleIndex + 2}, got c${nearestC2Index + 1}`;
+                                }
+                                
+                                const rule = tau.p === 2 ? 
+                                    'p even → c_{i+1} = qm + f(p)' : 
+                                    'p odd → c_{i+1} = 6qm + f(p)';
+                                
+                                const equationHTML = `
+                                    <div class="equation-line"><strong>φ⁻¹: τ${tupleIndex + 1} → (c${nearestC1Index + 1}, c${nearestC2Index + 1})</strong></div>
+                                    <div class="equation-line" style="background: rgba(245, 158, 11, 0.2);">⚠️ ${blockStatus}</div>
+                                    <div class="equation-line">τ${tupleIndex + 1} = [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}]</div>
+                                    <div class="equation-line"><strong>Rules:</strong> c_i = 2qm + p, ${rule}</div>
+                                    <div class="equation-line" style="background: ${path1Valid ? 'rgba(5, 150, 105, 0.2)' : 'rgba(220, 38, 38, 0.2)'};">
+                                        <strong>Path 1 (reconstruct c${tupleIndex + 1}):</strong> 2 × ${tau.q} × ${tau.m} + ${tau.p} = ${reconstructedCi}
+                                        ${path1Valid ? ` ✓ Matches c${nearestC1Index + 1}=${actualCi}` : ` ❌ Got c${nearestC1Index + 1}=${actualCi}`}
+                                    </div>
+                                    <div class="equation-line" style="background: ${path2Valid ? 'rgba(5, 150, 105, 0.2)' : 'rgba(220, 38, 38, 0.2)'};">
+                                        <strong>Path 2 (reconstruct c${tupleIndex + 2}):</strong> ${ciPlus1Formula} = ${reconstructedCiPlus1}
+                                        ${path2Valid ? ` ✓ Matches c${nearestC2Index + 1}=${actualCiPlus1}` : ` ❌ Got c${nearestC2Index + 1}=${actualCiPlus1}`}
+                                    </div>
+                                    <div class="equation-line" style="background: rgba(220, 38, 38, 0.3); font-weight: bold;">
+                                        ${!path1Valid || !path2Valid ? '❌ RECONSTRUCTION FAILURE' : ''}
+                                    </div>
+                                    <div class="equation-line"><strong>Reconstructed:</strong> (${reconstructedCi}, ${reconstructedCiPlus1})</div>
+                                    <div class="equation-line"><strong>Actual blocks:</strong> (c${nearestC1Index + 1}, c${nearestC2Index + 1}) = (${actualCi}, ${actualCiPlus1})</div>
+                                    <div class="equation-line"><strong>Invalid - Pseudocycle removal broke φ⁻¹!</strong></div>
+                                `;
+                                
+                                const isMR = this.vizData.repeatedInfo && 
+                                    (tupleIndex === this.vizData.repeatedInfo.firstOccurrenceIndex || 
+                                    tupleIndex === this.vizData.repeatedInfo.firstRepeatedIndex);
+                                
+                                const orphanOffset = isMR ? 0 : 10;
+                                
+                                this._drawInvertedUShapePhiInverseArrow(
+                                    tupleCoords.centerX,
+                                    tupleCoords.top,
+                                    c1Coords.centerX,
+                                    c1Coords.bottom,
+                                    c2Coords.centerX,
+                                    c2Coords.bottom,
+                                    CONFIG.COLORS.PHI_INV_ARROW_ERROR,
+                                    orphanOffset,
+                                    false,
+                                    false,
+                                    false,
+                                    equationHTML
+                                );
+                            }
+                        }
+                    });
+                }
+            }
+
+            /**
+             * Draws inverted U-shaped φ⁻¹ arrow connecting one tuple block to two Collatz blocks.
+             * Uses dashed lines to distinguish from φ arrows, validates reconstruction.
+             * 
+             * @private
+             * @param {number} xCenter - X coordinate of tuple block center
+             * @param {number} yTop - Y coordinate of tuple block top
+             * @param {number} x1 - X coordinate of first Collatz block center
+             * @param {number} y1 - Y coordinate of first Collatz block bottom
+             * @param {number} x2 - X coordinate of second Collatz block center
+             * @param {number} y2 - Y coordinate of second Collatz block bottom
+             * @param {string} color - Arrow color (green for valid, red for error)
+             * @param {number} extraOffset - Additional horizontal offset for orphaned arrows
+             * @param {boolean} isValid - Whether the reconstruction is valid
+             * @param {boolean} isFirst - Whether this is the first tuple in sequence
+             * @param {boolean} isLast - Whether this is the last tuple in sequence
+             * @param {string} equationHTML - HTML content for tooltip with reconstruction details
+             * @returns {void}
+             * 
+             * @description
+             * Creates an inverted U-shaped arrow with dashed lines:
+             * 1. Center vertical line rising from tuple block
+             * 2. Horizontal line spanning both target Collatz blocks
+             * 3. Left vertical line descending to first Collatz block (with arrowhead)
+             * 4. Right vertical line descending to second Collatz block (with arrowhead)
+             * 
+             * Dashed lines visually distinguish φ⁻¹ (inverse) from φ (forward) arrows.
+             * Uses SVG paths for dashed rendering, HTML elements for arrowheads.
+             * 
+             * The φ⁻¹ label is positioned to the right of the tuple block with
+             * interactive tooltip showing the reconstruction equations.
+             */
+            _drawInvertedUShapePhiInverseArrow(xCenter, yTop, x1, y1, x2, y2, color, extraOffset = 0, isValid = true, isFirst = false, isLast = false, equationHTML = '') {
+                const tupleOffset = 25 + extraOffset;
+                const adjustedXCenter = xCenter + tupleOffset;
+                
+                let c1Offset = 0;
+                let c2Offset = 0;
+                
+                if (isFirst) {
+                    c1Offset = 55;
+                } else {
+                    c1Offset = 55;
+                }
+                
+                if (isLast) {
+                    c2Offset = -55;
+                } else {
+                    c2Offset = -55;
+                }
+                
+                const adjustedX1 = x1 + c1Offset;
+                const adjustedX2 = x2 + c2Offset;
+                
+                const midY = yTop + (y1 - yTop) * 0.6;
+                
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.style.position = 'absolute';
+                svg.style.left = '0';
+                svg.style.top = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                svg.style.zIndex = '5';
+                svg.style.overflow = 'visible';
+                
+                const centerPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                centerPath.setAttribute('d', `M ${adjustedXCenter} ${yTop} L ${adjustedXCenter} ${midY}`);
+                centerPath.setAttribute('stroke', color);
+                centerPath.setAttribute('stroke-width', CONFIG.ARROW_THICKNESS);
+                centerPath.setAttribute('stroke-dasharray', '8,8');
+                centerPath.setAttribute('fill', 'none');
+                svg.appendChild(centerPath);
+                
+                const minX = Math.min(adjustedX1, adjustedX2, adjustedXCenter);
+                const maxX = Math.max(adjustedX1, adjustedX2, adjustedXCenter);
+                const horizPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                horizPath.setAttribute('d', `M ${minX} ${midY} L ${maxX} ${midY}`);
+                horizPath.setAttribute('stroke', color);
+                horizPath.setAttribute('stroke-width', CONFIG.ARROW_THICKNESS);
+                horizPath.setAttribute('stroke-dasharray', '8,8');
+                horizPath.setAttribute('fill', 'none');
+                svg.appendChild(horizPath);
+                
+                const leftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                leftPath.setAttribute('d', `M ${adjustedX1} ${midY} L ${adjustedX1} ${y1}`);
+                leftPath.setAttribute('stroke', color);
+                leftPath.setAttribute('stroke-width', CONFIG.ARROW_THICKNESS);
+                leftPath.setAttribute('stroke-dasharray', '8,8');
+                leftPath.setAttribute('fill', 'none');
+                svg.appendChild(leftPath);
+                
+                const rightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                rightPath.setAttribute('d', `M ${adjustedX2} ${midY} L ${adjustedX2} ${y2}`);
+                rightPath.setAttribute('stroke', color);
+                rightPath.setAttribute('stroke-width', CONFIG.ARROW_THICKNESS);
+                rightPath.setAttribute('stroke-dasharray', '8,8');
+                rightPath.setAttribute('fill', 'none');
+                svg.appendChild(rightPath);
+                
+                this.container.appendChild(svg);
+                
+                const leftHead = document.createElement('div');
+                leftHead.className = 'arrow';
+                leftHead.style.position = 'absolute';
+                leftHead.style.left = (adjustedX1 - CONFIG.ARROW_HEAD_SIZE / 2) + 'px';
+                leftHead.style.top = y1 + 'px';
+                leftHead.style.width = '0';
+                leftHead.style.height = '0';
+                leftHead.style.borderBottom = `${CONFIG.ARROW_HEAD_SIZE}px solid ${color}`;
+                leftHead.style.borderLeft = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                leftHead.style.borderRight = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                leftHead.style.zIndex = '6';
+                this.container.appendChild(leftHead);
+                
+                const rightHead = document.createElement('div');
+                rightHead.className = 'arrow';
+                rightHead.style.position = 'absolute';
+                rightHead.style.left = (adjustedX2 - CONFIG.ARROW_HEAD_SIZE / 2) + 'px';
+                rightHead.style.top = y2 + 'px';
+                rightHead.style.width = '0';
+                rightHead.style.height = '0';
+                rightHead.style.borderBottom = `${CONFIG.ARROW_HEAD_SIZE}px solid ${color}`;
+                rightHead.style.borderLeft = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                rightHead.style.borderRight = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                rightHead.style.zIndex = '6';
+                this.container.appendChild(rightHead);
+                
+                const labelEl = document.createElement('div');
+                labelEl.className = 'arrow-label';
+                labelEl.innerHTML = 'φ⁻¹';
+                labelEl.style.position = 'absolute';
+                const tupleRightEdge = xCenter + 90 - 50;
+                labelEl.style.left = tupleRightEdge + 'px';
+                labelEl.style.top = (yTop - 50) + 'px';
+                labelEl.style.transform = 'none';
+                labelEl.style.background = isValid ? '#10b981' : '#7f1d1d';
+                labelEl.style.border = `2px solid ${color}`;
+                labelEl.style.zIndex = '10';
+                
+                labelEl.addEventListener('mouseenter', () => {
+                    TooltipManager.show(labelEl, equationHTML || `φ⁻¹ inverse: τᵢ → (cᵢ, cᵢ₊₁) ${isValid ? 'Valid' : 'Invalid'}`, true);
+                });
+                labelEl.addEventListener('mouseleave', () => {
+                    TooltipManager.hide();
+                });
+                
+                this.container.appendChild(labelEl);
+            }
+
+            /**
+             * Draws a horizontal arrow with label and tooltip.
+             * Used for ƒ and ƒT transformations with validation feedback.
+             * 
+             * @private
+             * @param {number} x1 - Starting X coordinate (right edge of source block)
+             * @param {number} y1 - Starting Y coordinate (vertical center of source block)
+             * @param {number} x2 - Ending X coordinate (left edge of target block)
+             * @param {number} y2 - Ending Y coordinate (vertical center of target block)
+             * @param {string} color - Arrow color (green for valid, red for error)
+             * @param {string} label - Label text to display on arrow (e.g., 'ƒ', 'ƒ<sub>T</sub>')
+             * @param {boolean} isValid - Whether the transformation is valid
+             * @param {string} tooltipText - Simple tooltip text (alternative to equationHTML)
+             * @param {number} verticalOffset - Vertical adjustment for arrow position
+             * @param {string|null} equationHTML - Detailed HTML content for tooltip with equations
+             * @param {boolean} showAbove - Whether to show tooltip above (true) or below (false) the arrow
+             * @returns {void}
+             * 
+             * @description
+             * Creates a horizontal arrow connecting two blocks with:
+             * - A solid horizontal line from source to target
+             * - A triangular arrowhead pointing right at the target end
+             * - A centered label showing the function name (ƒ or ƒT)
+             * - Interactive tooltip displaying validation equations on hover
+             * 
+             * Label background color indicates validity:
+             * - Green (#10b981): Valid transformation preserving isomorphism
+             * - Red (#7f1d1d): Invalid transformation (broken isomorphism)
+             * 
+             * The tooltip displays detailed equations showing:
+             * - Which transformation rule applies
+             * - Computed vs actual values
+             * - Success/failure status
+             */
+            _drawHorizontalArrow(x1, y1, x2, y2, color, label, isValid, tooltipText = '', verticalOffset = 0, equationHTML = null, showAbove = false) {
+                y1 += verticalOffset;
+                y2 += verticalOffset;
+                
+                const arrow = document.createElement('div');
+                arrow.className = 'arrow';
+                arrow.style.position = 'absolute';
+                arrow.style.left = x1 + 'px';
+                arrow.style.top = (y1 - CONFIG.ARROW_THICKNESS / 2) + 'px';
+                arrow.style.width = (x2 - x1) + 'px';
+                arrow.style.height = CONFIG.ARROW_THICKNESS + 'px';
+                arrow.style.background = color;
+                arrow.style.zIndex = '5';
+                
+                const head = document.createElement('div');
+                head.style.position = 'absolute';
+                head.style.right = '0';
+                head.style.top = '50%';
+                head.style.transform = 'translateY(-50%)';
+                head.style.width = '0';
+                head.style.height = '0';
+                head.style.borderLeft = `${CONFIG.ARROW_HEAD_SIZE}px solid ${color}`;
+                head.style.borderTop = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                head.style.borderBottom = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
+                arrow.appendChild(head);
+                
+                const labelEl = document.createElement('div');
+                labelEl.className = 'arrow-label';
+                labelEl.innerHTML = label;
+                labelEl.style.position = 'absolute';
+                labelEl.style.left = '50%';
+                labelEl.style.top = '50%';
+                labelEl.style.transform = 'translate(-50%, -50%)';
+                labelEl.style.background = isValid ? '#10b981' : '#7f1d1d';
+                labelEl.style.border = `2px solid ${color}`;
+                
+                labelEl.addEventListener('mouseenter', () => {
+                    let tooltipContent = equationHTML || tooltipText || label + ' function';
+                    TooltipManager.show(labelEl, tooltipContent, showAbove);
+                });
+                labelEl.addEventListener('mouseleave', () => {
+                    TooltipManager.hide();
+                });
+                
+                arrow.appendChild(labelEl);
+                this.container.appendChild(arrow);
+            }
+        }
+
+        /**
+         * Manages tooltip display with mathematical equations and validation details.
+         * Provides hover tooltips for transformation arrows showing detailed computations.
+         * 
+         * @class TooltipManager
+         */
+        class TooltipManager {
+
+            /**
+             * Shows tooltip near the target element with dynamic positioning to stay within viewport.
+             * 
+             * @static
+             * @param {HTMLElement} element - Element that triggered the tooltip (usually an arrow label)
+             * @param {string} text - HTML content to display in the tooltip
+             * @param {boolean} showAbove - Whether to position tooltip above (true) or below (false) the element
+             * @returns {void}
+             * 
+             * @description
+             * Displays a styled tooltip containing:
+             * - Mathematical equations with proper formatting
+             * - Validation status (valid/invalid)
+             * - Color-coded results (green for success, red for errors)
+             * 
+             * Positioning logic:
+             * 1. Centers tooltip horizontally relative to the arrow label
+             * 2. Positions above or below based on showAbove parameter
+             * 3. Adjusts position if tooltip would overflow viewport edges
+             * 4. Ensures tooltip remains fully visible within window bounds
+             * 
+             * The tooltip remains visible while hovering over the arrow label
+             * and disappears when the mouse leaves (handled by event listeners in ArrowDrawer).
+             */
+            static show(element, text, showAbove = false) {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.innerHTML = text;
+                tooltip.classList.add('show');
+                
+                const rect = element.getBoundingClientRect();
+                const tooltipRect = tooltip.getBoundingClientRect();
+                
+                let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                let top;
+                
+                if (showAbove) {
+                    top = rect.top - tooltipRect.height - 10;
+                } else {
+                    top = rect.bottom + 10;
+                }
+                
+                if (left < 10) left = 10;
+                if (left + tooltipRect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - tooltipRect.width - 10;
+                }
+                
+                if (top < 10) {
+                    top = rect.bottom + 10;
+                }
+                if (top + tooltipRect.height > window.innerHeight - 10) {
+                    top = rect.top - tooltipRect.height - 10;
+                }
+                
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            }
+
+            /**
+             * Hides the currently displayed tooltip.
+             * 
+             * @static
+             * @returns {void}
+             */
+            static hide() {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.classList.remove('show');
+            }
+        }
+
+        /**
+         * Main controller managing user interactions, visualization state, and pruning operations.
+         * Orchestrates the complete dynamical isomorphism demonstration.
+         * 
+         * @class Controller
+         */
+        class Controller {
+
+            /**
+             * Creates the main controller instance.
+             * 
+             * @constructor
+             * 
+             * @description
+             * Initializes the controller with:
+             * - vizData: null (set when user processes a number)
+             * - Event listeners for user input
+             */
+            constructor() {
+                this.vizData = null;
+                this.setupEventListeners();
+            }
+
+            /**
+             * Sets up event listeners for user input.
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * Configures:
+             * - Enter key to trigger processing
+             * - Input changes to clear visualization when invalid
+             */
+            setupEventListeners() {
+                const input = document.getElementById('inputN');
+                
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.process();
+                    }
+                });
+                
+                input.addEventListener('input', (e) => {
+                    const value = e.target.value.trim();
+                    if (value === '' || value === '0') {
+                        this.clearVisualization();
+                        const exportBtn = document.getElementById('exportBtn');
+                        if (exportBtn) exportBtn.disabled = true;
+                    }
+                });
+            }
+
+            /**
+             * Clears the visualization and resets state.
+             * 
+             * @returns {void}
+             */
+            clearVisualization() {
+                const container = document.getElementById('flowContainer');
+                container.innerHTML = '';
+                this.vizData = null;
+            }
+
+            /**
+             * Main entry point: validates input, generates sequence and tuples, renders visualization.
+             * Orchestrates the complete dynamical isomorphism demonstration.
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * Processing pipeline:
+             * 1. Validates user input (must be positive integer)
+             * 2. Generates complete Collatz sequence using CollatzMath.generateSequence()
+             * 3. Computes tuple representation using CollatzMath.computeTuples()
+             * 4. Creates VisualizationData object (manages state, identifies pseudocycles)
+             * 5. Renders all blocks (Collatz and tuple rows) via DOMRenderer
+             * 6. Draws all arrows (ƒ, ƒT, φ, φ⁻¹) via ArrowDrawer after short delay
+             * 
+             * The visualization demonstrates:
+             * - Horizontal arrows (ƒ, ƒT): Show dynamical evolution in both spaces
+             * - Vertical arrows (φ, φ⁻¹): Show the bijective mappings preserving structure
+             * - Color coding: Blue (Collatz), Purple (tuples), Cyan (repeated m-values), Orange (cycle)
+             * - Interactive scissors (✂️): Allow pseudocycle removal to break isomorphism
+             * 
+             * Error handling: Catches and displays errors gracefully, preventing crashes
+             * from invalid inputs or excessively long sequences.
+             * 
+             * Post-processing: Enables export button for saving visualization as PNG image.
+             */
+            process() {
+                try {
+                    const input = document.getElementById('inputN').value;
+                    const n = parseInt(input);
+                    const errorDiv = document.getElementById('error');
+
+                    if (!n || n < 1) {
+                        DOMRenderer.showError('Please enter a valid positive integer for n.', errorDiv);
+                        document.getElementById('exportBtn').disabled = true;
+                        return;
+                    }
+
+                    document.getElementById('error').innerHTML = '';
+
+                    const sequence = CollatzMath.generateSequence(n);
+                    const tuples = CollatzMath.computeTuples(sequence);
+                    this.vizData = new VisualizationData(n, sequence, tuples);
+
+                    DOMRenderer.renderBlocks(
+                        this.vizData.items,
+                        document.getElementById('flowContainer')
+                    );
+
+                    const container = document.getElementById('flowContainer');
+                    container.scrollLeft = 0;
+
+                    setTimeout(() => {
+                        const drawer = new ArrowDrawer(
+                            document.getElementById('flowContainer'),
+                            this.vizData
+                        );
+                        drawer.drawAll();
+
+                        document.getElementById('exportBtn').disabled = false;
+                    }, 10);
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    DOMRenderer.showError(
+                        'An error occurred while processing. Please try a different number.',
+                        document.getElementById('error')
+                    );
+                }
+            }
+
+            /**
+             * Applies pruneDown operation and preserves scroll position.
+             * 
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @returns {void}
+             * 
+             * @description
+             * Removes intermediate elements between first occurrence and repetition,
+             * keeping the first occurrence visible. Demonstrates how removing the
+             * pseudocycle breaks the isomorphism.
+             */
+            pruneDown(preserveScrollTarget) {
+                this.vizData.pruneDown();
+                this.redraw();
+                if (preserveScrollTarget) {
+                    this.restoreScrollPosition(preserveScrollTarget);
+                }
+            }
+
+            /**
+             * Applies pruneUp operation and preserves scroll position.
+             * 
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @returns {void}
+             * 
+             * @description
+             * Removes intermediate elements between first occurrence and repetition,
+             * keeping the second occurrence visible. Demonstrates how removing the
+             * pseudocycle breaks the isomorphism.
+             */
+            pruneUp(preserveScrollTarget) {
+                this.vizData.pruneUp();
+                this.redraw();
+                if (preserveScrollTarget) {
+                    this.restoreScrollPosition(preserveScrollTarget);
+                }
+            }
+
+            /**
+             * Restores visualization after pruneDown operation.
+             * 
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @returns {void}
+             */
+            unpruneDown(preserveScrollTarget) {
+                this.vizData.unpruneDown();
+                this.redraw();
+                if (preserveScrollTarget) {
+                    this.restoreScrollPosition(preserveScrollTarget);
+                }
+            }
+
+            /**
+             * Restores visualization after pruneUp operation.
+             * 
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @returns {void}
+             */
+            unpruneUp(preserveScrollTarget) {
+                this.vizData.unpruneUp();
+                this.redraw();
+                if (preserveScrollTarget) {
+                    this.restoreScrollPosition(preserveScrollTarget);
+                }
+            }
+
+            /**
+             * Restores scroll position after pruning operations.
+             * 
+             * @param {Object} targetInfo - Object with {index, offsetFromLeft}
+             * @returns {void}
+             * 
+             * @description
+             * Maintains visual continuity by keeping the clicked element at the same
+             * screen position even after elements are hidden/shown. This prevents
+             * jarring jumps when toggling pruning modes.
+             */
+            restoreScrollPosition(targetInfo) {
+                const container = document.getElementById('flowContainer');
+                const targetBlock = document.getElementById(`t-${targetInfo.index}`);
+                
+                if (targetBlock && targetInfo.offsetFromLeft !== null) {
+                    const containerRect = container.getBoundingClientRect();
+                    const newRect = targetBlock.getBoundingClientRect();
+                    const newOffsetFromLeft = newRect.left - containerRect.left;
+                    
+                    const scrollAdjustment = newOffsetFromLeft - targetInfo.offsetFromLeft;
+                    container.scrollLeft += scrollAdjustment;
+                }
+            }
+            
+            /**
+             * Handles clicks on repeated m-value tuples (marked with ✂️ scissors icon).
+             * Toggles pruning state and preserves scroll position on the clicked element.
+             * Implements interactive demonstration of Theorem 5.6.
+             * 
+             * @param {string} which - Either 'first' or 'second', indicating which m_r occurrence was clicked
+             * @param {HTMLElement} clickedElement - The DOM element that was clicked
+             * @returns {void}
+             * 
+             * @description
+             * This interactive feature demonstrates pseudocycle removal and its consequences:
+             * 
+             * Clicking the first occurrence (✂️):
+             * - If unpruned → pruneDown (hide elements, keep first occurrence visible)
+             * - If already pruned-down → unpruneDown (restore all elements)
+             * - If pruned-up → unpruneUp then remain unpruned (switch pruning modes)
+             * 
+             * Clicking the second occurrence (✂️):
+             * - If unpruned → pruneUp (hide elements, keep second occurrence visible)
+             * - If already pruned-up → unpruneUp (restore all elements)
+             * - If pruned-down → unpruneDown then remain unpruned (switch pruning modes)
+             * 
+             * Visual feedback:
+             * - Clicked element gets red border and glow animation (mr-active class)
+             * - Scroll position preserved to keep clicked element in same screen location
+             * - Red error arrows appear showing broken φ and φ⁻¹ mappings
+             * 
+             * Educational purpose: Allows users to interactively explore what happens when
+             * the pseudocycle is removed, visually proving that it breaks the dynamical isomorphism
+             * and is therefore a necessary structural component (Theorem 5.6).
+             */
+            handleMRClick(which, clickedElement) {
+                const state = this.vizData.pruningState;
+                
+                let targetIndex = null;
+                if (which === 'first') {
+                    targetIndex = this.vizData.repeatedInfo.firstOccurrenceIndex;
+                } else if (which === 'second') {
+                    targetIndex = this.vizData.repeatedInfo.firstRepeatedIndex;
+                }
+                
+                const container = document.getElementById('flowContainer');
+                const clickedRect = clickedElement ? clickedElement.getBoundingClientRect() : null;
+                const containerRect = container.getBoundingClientRect();
+                const clickedOffsetFromLeft = clickedRect ? (clickedRect.left - containerRect.left) : null;
+                
+                const preserveScrollTarget = {
+                    index: targetIndex,
+                    offsetFromLeft: clickedOffsetFromLeft
+                };
+
+                if (which === 'first') {
+                    if (state === 'pruned-down') {
+                        this.unpruneDown(preserveScrollTarget);
+                    } else if (state === 'none') {
+                        this.pruneDown(preserveScrollTarget);
+                    } else if (state === 'pruned-up') {
+                        this.unpruneUp(preserveScrollTarget);
+                    }
+                } else if (which === 'second') {
+                    if (state === 'pruned-up') {
+                        this.unpruneUp(preserveScrollTarget);
+                    } else if (state === 'none') {
+                        this.pruneUp(preserveScrollTarget);
+                    } else if (state === 'pruned-down') {
+                        this.unpruneDown(preserveScrollTarget);
+                    }
+                }
+            }
+
+            /**
+             * Exports the entire visualization as a PNG image.
+             * Temporarily removes scroll constraints to capture full diagram.
+             * 
+             * @async
+             * @returns {Promise<void>}
+             * 
+             * @description
+             * Export process:
+             * 1. Disables button and shows "Exporting..." message
+             * 2. Displays full-screen overlay with loading message
+             * 3. Hides header and removes scroll constraints
+             * 4. Redraws arrows for full visualization
+             * 5. Captures entire container as PNG using dom-to-image library
+             * 6. Restores original scroll/display settings
+             * 7. Triggers download with filename: collatz_n{value}_{timestamp}.png
+             * 8. Handles errors gracefully with user notification
+             * 
+             * Uses dom-to-image library for high-quality PNG rendering.
+             */
+            async showExport() {
+                try {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Exporting...';
+                    btn.disabled = true;
+                    
+                    const overlay = document.createElement('div');
+                    overlay.style.position = 'fixed';
+                    overlay.style.top = '0';
+                    overlay.style.left = '0';
+                    overlay.style.width = '100%';
+                    overlay.style.height = '100%';
+                    overlay.style.backgroundColor = '#2a2a2a';
+                    overlay.style.display = 'flex';
+                    overlay.style.justifyContent = 'center';
+                    overlay.style.alignItems = 'center';
+                    overlay.style.zIndex = '10000';
+                    overlay.style.color = 'white';
+                    overlay.style.fontSize = '24px';
+                    overlay.style.fontWeight = 'bold';
+                    overlay.innerHTML = '<div>📸 Generating image...<br><span style="font-size:16px; opacity:0.7;">Please wait</span></div>';
+                    document.body.appendChild(overlay);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    const container = document.getElementById('flowContainer');
+                    const header = document.querySelector('.header');
+                    
+                    header.style.display = 'none';
+                    
+                    const originalScroll = container.scrollLeft;
+                    const originalStyles = {
+                        overflow: container.style.overflow,
+                        height: container.style.height,
+                        maxHeight: container.style.maxHeight,
+                        marginTop: container.style.marginTop
+                    };
+                    
+                    // Prepare container for capture
+                    container.style.overflow = 'visible';
+                    container.style.height = 'auto';
+                    container.style.maxHeight = 'none';
+                    container.style.marginTop = '0';
+                    container.scrollLeft = 0;
+                    
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    
+                    const drawer = new ArrowDrawer(container, this.vizData);
+                    drawer.drawAll();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    
+                    const dataUrl = await domtoimage.toPng(container, {
+                        quality: 1.0,
+                        bgcolor: '#2a2a2a'
+                    });
+                    
+                    container.style.overflow = originalStyles.overflow;
+                    container.style.height = originalStyles.height;
+                    container.style.maxHeight = originalStyles.maxHeight;
+                    container.style.marginTop = originalStyles.marginTop;
+                    container.scrollLeft = originalScroll;
+                    header.style.display = '';
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    drawer.drawAll();
+                    
+                    document.body.removeChild(overlay);
+                    
+                    const link = document.createElement('a');
+                    link.download = `collatz_n${this.vizData.n}_${Date.now()}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                    
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    
+                } catch (error) {
+                    console.error('Export error:', error);
+                    
+                    const overlay = document.querySelector('div[style*="z-index: 10000"]');
+                    if (overlay) document.body.removeChild(overlay);
+                    
+                    alert('Error exporting. Please try again.');
+                    
+                    const container = document.getElementById('flowContainer');
+                    const header = document.querySelector('.header');
+                    container.style.overflow = 'auto';
+                    container.style.height = 'calc(100vh - 180px)';
+                    container.style.maxHeight = '';
+                    container.style.marginTop = '180px';
+                    header.style.display = '';
+                    
+                    const drawer = new ArrowDrawer(container, this.vizData);
+                    drawer.drawAll();
+                    
+                    btn.textContent = 'Export';
+                    btn.disabled = false;
+                }
+            }
+
+            /**
+             * Re-renders blocks and arrows after state changes (pruning/unpruning).
+             * 
+             * @returns {void}
+             * 
+             * @description
+             * Called after any pruning operation to:
+             * 1. Re-render all blocks with updated visibility
+             * 2. Re-draw all arrows with updated validation states
+             * 3. Maintain visual consistency during interactive exploration
+             */
+            redraw() {
+                DOMRenderer.renderBlocks(
+                    this.vizData.items,
+                    document.getElementById('flowContainer')
+                );
+
+                setTimeout(() => {
+                    const drawer = new ArrowDrawer(
+                        document.getElementById('flowContainer'),
+                        this.vizData
+                    );
+                    drawer.drawAll();
+                }, 10);
+            }
+        }
+
+        /**
+         * Global controller instance.
+         * Single instance manages all user interactions and visualization state.
+         * 
+         * @type {Controller}
+         */
+        const controller = new Controller();
+
+        /**
+         * Enable horizontal scrolling with mouse wheel for better navigation.
+         * Converts vertical wheel movements to horizontal scrolling in the flow container.
+         * 
+         * @listens wheel
+         * 
+         * @description
+         * Improves UX for navigating long Collatz sequences by allowing
+         * horizontal scrolling with the mouse wheel instead of requiring
+         * the horizontal scrollbar.
+         */
+        flowContainer.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0) {
+                e.preventDefault();
+                flowContainer.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+
+        /**
+         * Initialize UI state on page load.
+         * Ensures clean state when page is first loaded or refreshed.
+         * 
+         * @listens DOMContentLoaded
+         * 
+         * @description
+         * Sets initial state:
+         * - Export button disabled (no visualization yet)
+         * - Input field cleared (ready for user input)
+         * 
+         * Prevents issues with browser auto-fill or cached states.
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.disabled = true;
+            }
+            
+            const input = document.getElementById('inputN');
+            if (input) {
+                input.value = '';
+            }
+        });
+    </script>
+
+    <div class="author-info">
+        <p><strong>Author:</strong> Javier Hernandez | <strong>Email:</strong> 271314@pm.me</p>
+        <a href="https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/tree/main/step02-the-dynamical-isomorphism" target="_blank">Go To GitHub Repository</a> | 
+        <a href="https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture/blob/main/LICENSE" target="_blank">License</a> | 
+        <a href="https://doi.org/10.5281/zenodo.15546925" target="_blank">Research Reference</a>
+    </div>
+</body>
+</html>
