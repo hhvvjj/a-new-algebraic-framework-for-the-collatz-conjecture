@@ -153,7 +153,7 @@ The proof divides into three exhaustive cases corresponding to the class structu
 
 - $\text{ Classes } S(m_r), \text{ where } m_r > 0 \text{ and irregular}$ : The property $M^\* = m^\*$ provides a direct upper bound: the global maximum coincides with the local maximum within the pseudocycle, forcing bounded descent toward $m = 0$ after the wormhole begins.
 
-- $\text{ Classes } S(m_r), \text{ where } m_r = 0\text{ and regular}$ : The structural pattern $n = e(m_r) \cdot 2^k$ guarantees that all members reach the entry point through successive divisions by 2, after which the wormhole trajectory ensures convergence.
+- $\text{ Classes } S(m_r), \text{ where } m_r > 0\text{ and regular}$ : The structural pattern $n = e(m_r) \cdot 2^k$ guarantees that all members reach the entry point through successive divisions by 2, after which the wormhole trajectory ensures convergence.
 
 **The power of invariance:**
 
