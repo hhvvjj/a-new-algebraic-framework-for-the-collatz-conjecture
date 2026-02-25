@@ -8,7 +8,7 @@
  * and convergence structure of Collatz sequences through the lens of 
  * parameter repetitions and pseudocycles. This tool demonstrates the 
  * exhaustive partition of all positive integers into structural classes 
- * S(m_r) and visualizes the three taxonomic types (A, B, C) that determine 
+ * S(m_r) and visualizes the three taxonomic types (A, B or C) that determine 
  * convergence behavior.
  * 
  * MATHEMATICAL FOUNDATION:
@@ -19,12 +19,14 @@
  * CORE CONCEPTS:
  * - First Repeated Parameter (Definition 6.3): Each n belongs to exactly 
  *   one class S(m_r) determined by its first repeated parameter value
- * - Invariant Properties (Theorems 6.5-6.8): Distance d(m_r), local maximum 
- *   m*, and wormhole structure are constant for all n in S(m_r)
- * - Taxonomic Types (Definition 7.2): Position of global maximum M* relative 
+ * - Invariant Properties (Theorems 6.6, 6.7, and 6.9): Distance d(m_r), 
+ *   local maximum m* and wormhole structure are constant for all n in S(m_r)
+ * - Taxonomic Types (Definition 7.3): Position of global maximum M* relative 
  *   to pseudocycle determines Type A, B or C
- * - Universal Convergence (Theorem 8.5): Every positive integer converges 
- *   to the cycle (4, 2, 1) through its class wormhole
+ * - Regular and Irregular Elements (Definition 8.1): n is regular if 
+ *   n = e(m_r)·2^k for some k ≥ 0, irregular otherwise
+ * - Universal Convergence (Theorem 9.4): Every positive integer converges 
+ *   to the cycle (4, 2, 1) — every n is regular or irregular, both converge
  * 
  * VISUALIZATION FEATURES:
  * 1. Classification Display: Shows n ∈ S(m_r) with taxonomy type
@@ -48,10 +50,10 @@
  * - M*: Global maximum of this specific sequence
  * - Distance d(m_r): Steps between m_r repetitions (invariant)
  * 
- * TAXONOMY DETERMINATION:
- * Type A: M* occurs before first m_r (pre-pseudocycle maximum)
- * Type B: M* = m* within pseudocycle (intra-pseudocycle maximum)
- * Type C: M* occurs after second m_r (post-pseudocycle maximum)
+ * TAXONOMY DETERMINATION (Definition 7.3):
+ * Type A: M* > m* and occurs before first m_r (pre-pseudocycle maximum)
+ * Type B: M* = m* and occurs within pseudocycle (between first and second m_r)
+ * Type C: M* > m* and occurs after second m_r (post-pseudocycle maximum)
  * 
  * KNOWN S(m_r) CLASSES:
  * Computational verification for n < 2^40 identifies exactly 42 distinct 
@@ -74,12 +76,7 @@
  * 6. Observe that all sequences in S(m_r) share same m*, d(m_r)
  * 
  * CONVERGENCE PROOF STRUCTURE:
- * Case m_r = 0: Direct convergence to (4,2,1) - Theorem 8.1
- * Case m_r > 0 irregular: Type B representatives prove wormhole 
- *   convergence, Type A inherits - Theorem 8.2
- * Case m_r > 0 regular: Type C representatives prove wormhole 
- *   convergence, Type A inherits - Theorem 8.4
- * Universal: All cases covered → all n converge - Theorem 8.5
+ * Universal: every n is regular or irregular, so both converge (Theorem 9.4)
  * 
  * AUTHOR: Javier Hernandez
  * EMAIL: 271314@pm.me
@@ -682,7 +679,8 @@
 
         /**
          * Decomposes a Collatz sequence into algebraic tuples (p, m).
-         * Each term c_i = 2q·m + p where q = 1.
+         * Each term c_i = 2q·m_i + p_i where q = 1 (Definition 2.6, equation 10).
+         * Valid tuples satisfy conditions V1-V4 (Lemma 2.12).
          * 
          * @param {number} n - Starting number for the Collatz sequence
          * @returns {Array<{p: number, m: number}>} Array of tuples representing the algebraic decomposition
@@ -744,9 +742,10 @@
             return tuples;
         }
 
-        /**
+       /**
          * Extracts the m-sequence from the algebraic decomposition.
-         * This sequence is fundamental for classification into S(m_r) classes.
+         * The m-sequence {m_i} is the parameter sequence fundamental for 
+         * classification into S(m_r) classes (Definition 6.1).
          * 
          * @param {number} n - The number to analyze
          * @returns {number[]} Array of m values from the decomposition
@@ -762,14 +761,19 @@
 
         /**
          * Finds the first repeated value in a sequence.
-         * This value (m_r) determines the classification class S(m_r).
+         * m_r is the parameter value whose second occurrence appears earliest
+         * in the sequence, not necessarily the first to appear chronologically
+         * (Definition 6.1). By Theorems 5.5, 5.6 and 5.7, every sequence must 
+         * contain at least one repeated parameter, so m_r is always well-defined.
          * 
          * @param {number[]} sequence - The m-sequence to analyze
-         * @returns {number} The first repeated value (m_r) or 0 if no repetition before trivial cycle
+         * @returns {number} The first repeated value m_r, or 0 if no repetition 
+         *   occurs before the trivial cycle (sequence belongs to S(0))
          * 
          * @example
-         * // For sequence [3, 10, 5, 16, 8, 25, 12, 6, 3, ...]
-         * // Returns 3 (first value to repeat)
+         * // For n = 27: m=30 appears at positions 5 and 93, m=60 at positions 17 
+         * // and 92. Although m=30 appears first, m=60 closes its pair earlier.
+         * // Returns 60 (m_r = 60, per Example 6.2)
          */
         function findFirstRepeated(sequence) {
             const seen = new Set();
@@ -861,7 +865,7 @@
          * 
          * @param {number} userN - The analyzed number
          * @param {number} mr - First repeated value (determines class S(m_r))
-         * @param {number} mstar - Local maximum (characteristic of the class)
+         * @param {number} mstar - Local maximum (characteristic of the class, invariant)
          * @param {number} Mstar - Global maximum in this specific sequence
          * @param {number} distance - d(m_r), the distance metric for the class
          * @param {number[]} userSequence - Complete m-sequence
@@ -869,10 +873,10 @@
          * @param {number[]} examples - Other known members of S(m_r)
          * 
          * @description
-         * Taxonomy determination:
-         * - Type A: M* appears before first m_r occurrence
-         * - Type B: M* appears between first and second m_r occurrence
-         * - Type C: M* appears after second m_r occurrence
+         * Taxonomy determination (Definition 7.3):
+         * - Type A: M* > m* and occurs before first m_r (pre-pseudocycle maximum)
+         * - Type B: M* = m* and occurs within pseudocycle (between first and second m_r)
+         * - Type C: M* > m* and occurs after second m_r (post-pseudocycle maximum)
          * 
          * Additionally computes the Collatz sequence (c_i values) for tooltip display.
          * 
@@ -891,11 +895,11 @@
 
             const latest = MR_MSTAR_DICT[mr]?.latest;
 
-            // Determine taxonomy type based on M* position
+            // Determine taxonomy type based on M* position (Definition 7.3)
             let userType;
-            if (userMstarPos < userFirstMrPos) {
+            if (userMstarPos < userFirstMrPos && Mstar > mstar) {
                 userType = 'A';
-            } else if (userMstarPos >= userFirstMrPos && userMstarPos <= userSecondMrPos) {
+            } else if (userMstarPos >= userFirstMrPos && userMstarPos <= userSecondMrPos && Mstar === mstar) {
                 userType = 'B';
             } else {
                 userType = 'C';
@@ -942,7 +946,7 @@
                     <div class="info-value">${distance}</div>
                 </div>
             `;
-        
+
             // Prepare all sequences for defragmentation view
             const allSequences = [];
             
@@ -989,7 +993,7 @@
             
             // Sort by n value
             allSequences.sort((a, b) => a.n - b.n);
-        
+
             // Render defragmentation visualization
             const container = document.getElementById('defragContainer');
             container.innerHTML = '';
@@ -998,11 +1002,11 @@
                 const secondMrPos = seq.mrPositions[1];
                 const MstarPos = seq.mSequence.indexOf(seq.Mstar);
 
-                // Determine type for each sequence
+                // Determine taxonomy type for each sequence (Definition 7.3)
                 let seqType;
-                if (MstarPos < firstMrPos) {
+                if (MstarPos < firstMrPos && seq.Mstar > mstar) {
                     seqType = 'A';
-                } else if (MstarPos >= firstMrPos && MstarPos <= secondMrPos) {
+                } else if (MstarPos >= firstMrPos && MstarPos <= secondMrPos && seq.Mstar === mstar) {
                     seqType = 'B';
                 } else {
                     seqType = 'C';
@@ -1034,7 +1038,7 @@
          * - Red (#e74c3c): m_r occurrences
          * - Green (#2ecc71): m* (local maximum)
          * - Blue (#3498db): M* (global maximum)
-         * - Purple (#8e44ad): m* = M* (when they coincide)
+         * - Purple (#8e44ad): m* = M* (Type B: global max coincides with pseudocycle max)
          * - Gradient: m_r and m* coincide
          * - Gray (#555): Regular intranscendent values
          * 
@@ -1111,11 +1115,11 @@
          * @param {number} position - Index in the m-sequence (0-based internally)
          * @param {number} m - Value of m at this position
          * @param {number} mr - The m_r value for this class
-         * @param {number} mstar - The m* value for this class
+         * @param {number} mstar - The m* value for this class (invariant, Definition 6.3)
          * @param {number} Mstar - Global maximum for this sequence
          * @param {number[]} mrPositions - All positions where m_r occurs
          * @param {number[]} mSequence - Complete m-sequence
-         * @param {string} type - Taxonomy type (A, B, or C)
+         * @param {string} type - Taxonomy type (A, B or C) as per Definition 7.3
          * @param {number[]} collatzSeq - The Collatz sequence (c_i values)
          * 
          * @returns {void}
