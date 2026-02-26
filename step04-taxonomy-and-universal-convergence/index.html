@@ -990,6 +990,12 @@
                     const mrPos = findPositions(seq, mr);
                     const seqMstar = Math.max(...seq);
                     
+                    // Compute entry point and regularity for this example (Definition 6.10, 8.1)
+                    const seqFirstMrTuple = collatzDecompose(n)[mrPos[0]];
+                    const seqEntryPoint = mr === 0 ? 1 : 2 * mr + seqFirstMrTuple.p;
+                    const seqRatio = n / seqEntryPoint;
+                    const seqIsRegular = seqRatio >= 1 && Number.isInteger(Math.log2(seqRatio));
+
                     // Compute Collatz sequence for this example
                     const collatzSeq = [];
                     let curr = n;
@@ -1010,7 +1016,8 @@
                         collatzSeq: collatzSeq,
                         mrPositions: mrPos,
                         isUser: false,
-                        Mstar: seqMstar
+                        Mstar: seqMstar,
+                        isRegular: seqIsRegular
                     });
                 }
             });
@@ -1035,7 +1042,7 @@
                 } else {
                     seqType = 'C';
                 }
-                renderDefragRow(container, seq, mr, mstar, seqType, latest);
+                renderDefragRow(container, seq, mr, mstar, seqType, latest, seq.isRegular);
             });
         }
 
@@ -1055,8 +1062,12 @@
          * @param {number} mstar - The m* value for this class
          * @param {string} type - Taxonomy type (A, B or C)
          * @param {number} latest - The latest known value in this class
+         * @param {boolean} isRegular - Whether this sequence is regular (Definition 8.1)
          * 
          * @description
+         * Each row displays: badges (YOU/LATEST), n value, taxonomy type and 
+         * regularity (R/I), followed by the color-coded m-sequence bar.
+         * 
          * Color coding:
          * - Orange (#f39c12): m = 0 (cycle reached)
          * - Red (#e74c3c): m_r occurrences
@@ -1068,7 +1079,7 @@
          * 
          * @returns {void}
          */
-        function renderDefragRow(container, seqData, mr, mstar, type, latest) {
+        function renderDefragRow(container, seqData, mr, mstar, type, latest, isRegular) {
             const { n, mSequence, mrPositions, isUser, collatzSeq } = seqData;
             const Mstar = Math.max(...mSequence);
             
@@ -1089,7 +1100,7 @@
 
             const badgesHTML = badgesArray.join('');
 
-            label.innerHTML = `<div style="text-align: left; display: flex; gap: 8px;">${badgesHTML}</div><div style="text-align: right;">n=${n}</div>`;
+            label.innerHTML = `<div style="text-align: left; display: flex; gap: 8px;">${badgesHTML}</div><div style="text-align: right;">n=${n} &nbsp;<strong>${type} ${isRegular ? 'R' : 'I'}</strong></div>`;
 
             const bar = document.createElement('div');
             bar.className = 'sequence-bar';
