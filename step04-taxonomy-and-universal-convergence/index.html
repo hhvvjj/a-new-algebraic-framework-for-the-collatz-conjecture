@@ -873,6 +873,14 @@
          * @param {number[]} examples - Other known members of S(m_r)
          * 
          * @description
+         * Entry point computation (Definition 6.10):
+         * - e(m_r) = 2·m_r + p_i, where p_i is the parity at the first occurrence of m_r
+         * - Special case: e(0) = 1, consistent with the trivial cycle (4, 2, 1)
+         * 
+         * Regularity determination (Definition 8.1):
+         * - Regular: n = e(m_r)·2^k for some k ≥ 0
+         * - Irregular: otherwise
+         * 
          * Taxonomy determination (Definition 7.3):
          * - Type A: M* > m* and occurs before first m_r (pre-pseudocycle maximum)
          * - Type B: M* = m* and occurs within pseudocycle (between first and second m_r)
@@ -894,6 +902,18 @@
             const userMstarPos = userSequence.indexOf(Mstar);
 
             const latest = MR_MSTAR_DICT[mr]?.latest;
+
+            // Compute entry point e(m_r) from Definition 6.10: e(m_r) = 2·m_r + p_i
+            // where p_i is the parity at the first occurrence of m_r in the tuple sequence.
+            // For m_r = 0: e(0) = 1, consistent with the trivial cycle (4, 2, 1).
+            const tuples = collatzDecompose(userN);
+            const firstMrTuple = tuples[userMrPositions[0]];
+            const entryPoint = mr === 0 ? 1 : 2 * mr + firstMrTuple.p;
+
+            // Determine regularity (Definition 8.1): n is regular if n = e(m_r)·2^k 
+            // for some k ≥ 0, i.e. n/e(m_r) is a non-negative integer power of 2.
+            const ratio = userN / entryPoint;
+            const isRegular = ratio >= 1 && Number.isInteger(Math.log2(ratio));
 
             // Determine taxonomy type based on M* position (Definition 7.3)
             let userType;
@@ -944,6 +964,10 @@
                 <div class="info-card">
                     <div class="info-label">Distance d(m<sub>r</sub>)</div>
                     <div class="info-value">${distance}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Regularity</div>
+                    <div class="info-value">${isRegular ? 'R' : 'I'}</div>
                 </div>
             `;
 
