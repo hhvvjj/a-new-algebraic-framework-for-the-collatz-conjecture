@@ -606,7 +606,7 @@
                 </div>
                 <div class="legend-item">
                     <div class="legend-box" style="background: #f39c12;"></div>
-                    <span class="legend-text">m = 0 (cycle)</span>
+                    <span class="legend-text">m = 0 (terminal)</span>
                 </div>
             </div>
 
@@ -694,17 +694,12 @@
             let current = n;
             
             // Generate standard Collatz sequence
-            // Special case for n=1: trivial cycle [1, 4, 2, 1] is forced
-            if (n === 1) {
-                collatzSeq.push(1, 4, 2, 1);
-            } else {
-                while (current !== 1) {
-                    collatzSeq.push(current);
-                    current = (current % 2 === 0) ? current / 2 : 3 * current + 1;
-                    if (collatzSeq.length > 10000) break; // Safety limit
-                }
-                collatzSeq.push(1);
+            while (current !== 1) {
+                collatzSeq.push(current);
+                current = (current % 2 === 0) ? current / 2 : 3 * current + 1;
+                if (collatzSeq.length > 10000) break; // Safety limit
             }
+            collatzSeq.push(1, 4, 2, 1)
 
             const tuples = [];
             // Find (p, m) for each consecutive pair
@@ -882,11 +877,10 @@
          * - Irregular: otherwise
          * 
          * Taxonomy determination (Definition 7.3):
+         * - Special case: all elements of S(0) are Type A (Lemma 7.5)
          * - Type A: M* > m* and occurs before first m_r (pre-pseudocycle maximum)
          * - Type B: M* = m* and occurs within pseudocycle (between first and second m_r)
          * - Type C: M* > m* and occurs after second m_r (post-pseudocycle maximum)
-         * 
-         * Additionally computes the Collatz sequence (c_i values) for tooltip display.
          * 
          * @returns {void}
          */
@@ -916,27 +910,16 @@
             const isRegular = ratio >= 1 && Number.isInteger(Math.log2(ratio));
 
             // Determine taxonomy type based on M* position (Definition 7.3)
+            // Special case: all elements of S(0) are Type A (Lemma 7.5)
             let userType;
-            if (userMstarPos < userFirstMrPos && Mstar > mstar) {
+            if (mr === 0) {
+                userType = 'A';
+            } else if (userMstarPos < userFirstMrPos && Mstar > mstar) {
                 userType = 'A';
             } else if (userMstarPos >= userFirstMrPos && userMstarPos <= userSecondMrPos && Mstar === mstar) {
                 userType = 'B';
             } else {
                 userType = 'C';
-            }
-
-            // Compute Collatz sequence for user's number (for tooltip c_i values)
-            const userCollatzSeq = [];
-            let current = userN;
-            if (userN === 1) {
-                userCollatzSeq.push(1, 4, 2, 1);
-            } else {
-                while (current !== 1) {
-                    userCollatzSeq.push(current);
-                    current = (current % 2 === 0) ? current / 2 : 3 * current + 1;
-                    if (userCollatzSeq.length > 10000) break;
-                }
-                userCollatzSeq.push(1);
             }
 
             // Display classification metrics
@@ -977,7 +960,6 @@
             allSequences.push({
                 n: userN,
                 mSequence: userSequence,
-                collatzSeq: userCollatzSeq,
                 mrPositions: userMrPositions,
                 isUser: true,
                 Mstar: Mstar
@@ -995,25 +977,10 @@
                     const seqEntryPoint = mr === 0 ? 1 : 2 * mr + seqFirstMrTuple.p;
                     const seqRatio = n / seqEntryPoint;
                     const seqIsRegular = seqRatio >= 1 && Number.isInteger(Math.log2(seqRatio));
-
-                    // Compute Collatz sequence for this example
-                    const collatzSeq = [];
-                    let curr = n;
-                    if (n === 1) {
-                        collatzSeq.push(1, 4, 2, 1);
-                    } else {
-                        while (curr !== 1) {
-                            collatzSeq.push(curr);
-                            curr = (curr % 2 === 0) ? curr / 2 : 3 * curr + 1;
-                            if (collatzSeq.length > 10000) break;
-                        }
-                        collatzSeq.push(1);
-                    }
-                    
+                   
                     allSequences.push({
                         n: n,
                         mSequence: seq,
-                        collatzSeq: collatzSeq,
                         mrPositions: mrPos,
                         isUser: false,
                         Mstar: seqMstar,
@@ -1034,8 +1001,11 @@
                 const MstarPos = seq.mSequence.indexOf(seq.Mstar);
 
                 // Determine taxonomy type for each sequence (Definition 7.3)
+                // Special case: all elements of S(0) are Type A (Lemma 7.5)
                 let seqType;
-                if (MstarPos < firstMrPos && seq.Mstar > mstar) {
+                if (mr === 0) {
+                    seqType = 'A';
+                } else if (MstarPos < firstMrPos && seq.Mstar > mstar) {
                     seqType = 'A';
                 } else if (MstarPos >= firstMrPos && MstarPos <= secondMrPos && seq.Mstar === mstar) {
                     seqType = 'B';
@@ -1054,7 +1024,6 @@
          * @param {Object} seqData - Data for this sequence
          * @param {number} seqData.n - Starting value
          * @param {number[]} seqData.mSequence - The m-sequence (m_i values)
-         * @param {number[]} seqData.collatzSeq - The Collatz sequence (c_i values)
          * @param {number[]} seqData.mrPositions - Positions of m_r
          * @param {boolean} seqData.isUser - Whether this is the user-provided sequence
          * @param {number} seqData.Mstar - Global maximum for this sequence
@@ -1080,7 +1049,7 @@
          * @returns {void}
          */
         function renderDefragRow(container, seqData, mr, mstar, type, latest, isRegular) {
-            const { n, mSequence, mrPositions, isUser, collatzSeq } = seqData;
+            const { n, mSequence, mrPositions, isUser } = seqData;
             const Mstar = Math.max(...mSequence);
             
             const row = document.createElement('div');
@@ -1129,8 +1098,7 @@
                 }
                 
                 // Add interactive tooltips
-                cell.addEventListener('mouseenter', (e) => showTooltip(e, n, i, m, mr, mstar, Mstar, mrPositions, mSequence, type, collatzSeq));
-                cell.addEventListener('mouseleave', hideTooltip);
+                cell.addEventListener('mouseenter', (e) => showTooltip(e, n, i, m, mr, mstar, Mstar, mrPositions, mSequence));
                 
                 bar.appendChild(cell);
             }
@@ -1150,16 +1118,14 @@
          * @param {number} position - Index in the m-sequence (0-based internally)
          * @param {number} m - Value of m at this position
          * @param {number} mr - The m_r value for this class
-         * @param {number} mstar - The m* value for this class (invariant, Definition 6.3)
+         * @param {number} mstar - The m* value for this class (invariant, Definition 6.8)
          * @param {number} Mstar - Global maximum for this sequence
          * @param {number[]} mrPositions - All positions where m_r occurs
          * @param {number[]} mSequence - Complete m-sequence
-         * @param {string} type - Taxonomy type (A, B or C) as per Definition 7.3
-         * @param {number[]} collatzSeq - The Collatz sequence (c_i values)
          * 
          * @returns {void}
          */
-        function showTooltip(e, n, position, m, mr, mstar, Mstar, mrPositions, mSequence, type, collatzSeq) {
+        function showTooltip(e, n, position, m, mr, mstar, Mstar, mrPositions, mSequence) {
             const tooltip = document.getElementById('tooltip');
             const mstarPos = mSequence.indexOf(mstar);
             const MstarPos = mSequence.indexOf(Mstar);
@@ -1167,11 +1133,7 @@
             let html = '';
             html += `<div class="tooltip-row"><span class="tooltip-label">n:</span> <span class="tooltip-value">${n}</span></div>`;
             html += '<hr style="border: 1px solid #444; margin: 8px 0;">';
-            html += `<div class="tooltip-row"><span class="tooltip-label">Collatz length:</span> <span class="tooltip-value">${mSequence.length + 1}</span></div>`;
-            html += `<div class="tooltip-row"><span class="tooltip-label">c<sub>${position + 1}</sub>:</span> <span class="tooltip-value">${collatzSeq[position]}</span></div>`;
-            html += '<hr style="border: 1px solid #444; margin: 8px 0;">';
             html += `<div class="tooltip-row"><span class="tooltip-label">Transform length:</span> <span class="tooltip-value">${mSequence.length}</span></div>`;
-            html += `<div class="tooltip-row"><span class="tooltip-label">Taxonomy:</span> <span class="tooltip-value">Type ${type}</span></div>`;
             html += `<div class="tooltip-row"><span class="tooltip-label">m<sub>${position+1}</sub>:</span> <span class="tooltip-value">${m}</span></div>`;
             html += '<hr style="border: 1px solid #444; margin: 8px 0;">';
             html += `<div class="tooltip-row"><span class="tooltip-label">m* (i=${mstarPos+1}):</span> <span class="tooltip-value">${mstar}</span></div>`;
@@ -1180,9 +1142,8 @@
 
             if (m === 0) {
                 html += '<hr style="border: 1px solid #444; margin: 8px 0;">';
-                html += `<div class="tooltip-row"><span style="color: #f39c12; font-weight: bold;">SPECIAL CASE</span></div>`;
-                html += `<div class="tooltip-row">Trivial cycle</div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">m<sub>${position + 1}</sub> = 0 or c<sub>${position + 1}</sub> = 2 → 1</span></div>`;
+                html += `<div class="tooltip-row"><span style="color: #f39c12; font-weight: bold;">SPECIAL CASE</span> Terminal</div>`;
+                html += `<div class="tooltip-row"><span class="tooltip-label">m<sub>${position + 1}</sub> = 0</span></div>`;
             } else if (m === mstar && m === Mstar) {
                 html += '<hr style="border: 1px solid #444; margin: 8px 0;">';
                 html += `<div class="tooltip-row"><span style="color: #8e44ad; font-weight: bold;">SPECIAL CASE</span> m* = M*</div>`;
