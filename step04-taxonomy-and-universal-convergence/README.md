@@ -20,8 +20,8 @@ All 42 known classes (discovered up to $2^{40}$) are included with pre-defined c
 - **Irregular**: reaches $e(m_r)$ via complex trajectory, then follows wormhole to $m = 0$
 
 All the cases terminate at $m = 0$, which corresponds to the trivial cycle $(4, 2, 1)$ 
-in Collatz space. In parameter space, the terminal pseudocycle is $(0, 1, 0)$, where 
-$m^* = 1$ is the local maximum between the two occurrences of $m_r = 0$. This proves  universal convergence.
+in Collatz space. In parameter space, the terminal pseudocycle is $(0, 0, 1, 0)$, where 
+$m^\* = 1$ is the local maximum between the two occurrences of $m_r = 0$. This proves  universal convergence.
 
 ## Live Demo
 
@@ -37,19 +37,19 @@ $m^* = 1$ is the local maximum between the two occurrences of $m_r = 0$. This pr
 **Classification Summary**:
 - Class membership: $S(m_r)$
 - Taxonomic type: A, B or C (all elements of $S(0)$ are Type A)
-- Key invariants: $m_r$, $m^*$ (local max), $M^*$ (global max), distance $d(m_r)$
+- Key invariants: $m_r$, $m^\*$ (local max), $M^\*$ (global max), distance $d(m_r)$
 - Regularity: R (regular) or I (irregular)
 
 **Visual m-Sequence Diagram**:
 - Color-coded parameter evolution
 - Highlights pseudocycle region (where $m_r$ repeats)
-- Shows global maximum $M^*$ and local maximum $m^*$
+- Shows global maximum $M^\*$ and local maximum $m^\*$
 - Each row shows taxonomy type and regularity inline
 - Traces wormhole to terminal pseudocycle $(m_r=0)$, i.e. the trivial cycle $(4, 2, 1)$
 
 **Class Examples**:
 - Multiple members of the same $S(m_r)$
-- Demonstrates $m^*$ and $d(m_r)$ invariance across all members
+- Demonstrates $m^\*$ and $d(m_r)$ invariance across all members
 - Shows structural patterns (regular vs irregular)
 
 ## Citation
