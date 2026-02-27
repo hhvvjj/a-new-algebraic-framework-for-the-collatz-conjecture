@@ -15,12 +15,13 @@ Interactive classification tool that analyzes Collatz sequences through their ta
 
 All 42 known classes (discovered up to $2^{40}$) are included with pre-defined cases.
 
-**Universal Convergence**: Every positive integer falls into exactly one of three cases:
-- **$m_r = 0$**: Reaches terminal cycle ($4, 2, 1$) directly
-- **$m_r > 0$ irregular** (Type B+A classes): Wormhole converges via bounded trajectory
-- **$m_r > 0$ regular** (Type C+A or Type B+A classes): Entry point reached by divisions by 2, then wormhole
+**Universal Convergence**: Every positive integer is either regular or irregular:
+- **Regular**: $n = e(m_r) \cdot 2^k$, reaches $e(m_r)$ via $k$ halvings, then follows wormhole to $m = 0$
+- **Irregular**: reaches $e(m_r)$ via complex trajectory, then follows wormhole to $m = 0$
 
-All three cases terminate at $m = 0$, proving universal convergence.
+All the cases terminate at $m = 0$, which corresponds to the trivial cycle $(4, 2, 1)$ 
+in Collatz space. In parameter space, the terminal pseudocycle is $(0, 1, 0)$, where 
+$m^* = 1$ is the local maximum between the two occurrences of $m_r = 0$. This proves  universal convergence.
 
 ## Live Demo
 
@@ -35,19 +36,20 @@ All three cases terminate at $m = 0$, proving universal convergence.
 
 **Classification Summary**:
 - Class membership: $S(m_r)$
-- Regularity: Regular (multiples of $2^k$) or Irregular
-- Taxonomic type: A, B or C
-- Key invariants: $m_r$, $m^\*$ (local max), $M^\*$ (global max) and entry point $e(m_r)$
+- Taxonomic type: A, B or C (all elements of $S(0)$ are Type A)
+- Key invariants: $m_r$, $m^*$ (local max), $M^*$ (global max), distance $d(m_r)$
+- Regularity: R (regular) or I (irregular)
 
 **Visual m-Sequence Diagram**:
 - Color-coded parameter evolution
 - Highlights pseudocycle region (where $m_r$ repeats)
-- Shows global maximum $M^\*$ and local maximum $m^\*$
-- Traces wormhole to terminal cycle ($4, 2, 1$)
+- Shows global maximum $M^*$ and local maximum $m^*$
+- Each row shows taxonomy type and regularity inline
+- Traces wormhole to terminal pseudocycle $(m_r=0)$, i.e. the trivial cycle $(4, 2, 1)$
 
 **Class Examples**:
 - Multiple members of the same $S(m_r)$
-- Demonstrates $m^\*$ invariance across all members
+- Demonstrates $m^*$ and $d(m_r)$ invariance across all members
 - Shows structural patterns (regular vs irregular)
 
 ## Citation
