@@ -7,11 +7,10 @@
 
 Calculates total stopping time $\sigma(n)$ (steps to reach 1) using three algorithms:
 
-1. **Multiplicities**: Instant $O(1)$ calculation for $n = e(m_r) \cdot 2^k$ (100% efficiency). 
-2. **Wormholes**: Iterates only until reaching entry point, then uses pre-computed tail (~23-66% efficiency)
-3. **Standard**: Full iteration when no optimization applies (~35% of cases). Special case: Pure powers of 2 ($e(m_r)=1, L=0$) are Standard sequences predicted as $\sigma(2^k) = k$
-
-Shows which algorithm was used and computational savings achieved.
+1. **Multiplicities**: Instant analytical calculation for $n = e(m_r) \cdot 2^k$ (100% efficiency). 
+   Special case $S(0)$ for pure powers of 2, where $n = 2^k$, $e(m_r)=1$ and $\tau(m_r)=0$.
+2. **Wormholes**: Iterates only until reaching entry point, then uses pre-computed tail. The efficiency decreases with $n$: for $n < 2^{10}$ it is $\approx 69\%$ and for $n < 2^{40}$ it is $\approx18\%$.
+3. **Standard**: Full iteration when no optimization applies (0% efficiency).
 
 ## Live Demo
 
@@ -20,31 +19,39 @@ Shows which algorithm was used and computational savings achieved.
 ## How to Use
 
 ### Input Parameters
+
 - **$n$**: Starting positive integer (required)
 
-### What You Get
+## What You Get
 
-**Results Display**:
+### Results Display
+
 - **$\sigma(n)$**: Total stopping time
 - **Algorithm used**: Which optimization applied
 - **Prediction type**:
-  - `multiplicity_found`: Instant calculation (0 iterations)
+  - `multiplicity_found`: Instant analytical calculation (0 iterations, includes pure powers of 2)
   - `entry_point_found`: Wormhole optimization (partial iteration)
   - `no_entry_point`: Standard algorithm (full iteration)
-  - `trivial`: Input was $n = 1$
 
-**Efficiency Metrics**:
-- Steps computed vs steps saved
-- Computational efficiency percentage
-- Entry point reached (if applicable)
+### Efficiency Metrics
 
-**Complexity**: 
+- Computed steps $k$ vs saved steps $\tau(m_r)$
+- Class $S(m_r)$
+- Computational efficiency $\eta$
+
+### Complexity Metrics
 
 | Algorithm | Time Complexity | Space Complexity | Best Case | Worst Case |
 |-----------|----------------|------------------|-----------|------------|
-| **Standard** | $O(\sigma(n))$ | $O(\sigma(n))$ | $\sigma(n)$ iterations | $\sigma(n)$ iterations |
-| **Multiplicities** | $O(1)$ | $O(1)$ | 0 iterations (instant) | Not applicable |
-| **Wormholes** | $O(j)$ | $O(\sigma(n))$ | 0 iterations (instant) | $\sigma(n)$ iterations |
+| **Standard** | $O(\sigma(n))$ | $O(1)$ | $\sigma(n)$ iterations | $\sigma(n)$ iterations |
+| **Multiplicities** | $O(1)$ | $O(1)$ | 0 iterations (instant) | $\emptyset$  |
+| **Wormholes** | $O(k)$ | $O(1)$ | 0 iterations (instant when $n = e(m_r)$) | $\sigma(n) - \tau(m_r)$ iterations |
+
+### Wormhole Efficiency vs Scale
+
+Wormhole coverage remains stable (~65%) across tested $n < 2^{40}$, but efficiency $\eta = \tau(m_r)/\sigma(n)$ 
+deteriorates as $n$ grows: precomputed $\tau(m_r)$ values are fixed while $\sigma(n)$ increases, so the saved fraction 
+shrinks progressively. However, since $\tau(m_r) > 0$ always, wormhole prediction never reaches $\eta = 0$.
 
 ## Citation
 
