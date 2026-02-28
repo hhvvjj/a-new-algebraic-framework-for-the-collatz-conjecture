@@ -24,8 +24,8 @@ Browser-based tool designed for interactive and conceptual exploration. All 42 k
 
 ### Input Parameters
 
-- **n**: Starting positive integer (required)
-  - Start small (100-1000) to watch how new $m_r$ discoveries slow down rapidly
+- **n**: Maximum integer to enumerate up to (required)
+  - Use small (100-1000) to watch how new $m_r$ discoveries slow down rapidly
   - Use 8192 ($2^{13}$) to find all 42 known classes
 
 ## What You Get
