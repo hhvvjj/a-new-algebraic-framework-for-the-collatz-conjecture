@@ -42,8 +42,6 @@
  *    - Distinct m_r classes found
  *    - Largest m_r discovered
  *    - Discovery completion threshold
- * 4. Export Functionality: Save results as JSON for analysis
- * 5. Batch Processing: Efficient enumeration up to 2^20
  * 
  * CLASSIFICATION OUTPUT:
  * For each discovered m_r class:
@@ -80,8 +78,8 @@
  * 
  * PERFORMANCE NOTES:
  * - Optimized for ranges up to 2^20 (~1 million)
- * - Batch processing prevents UI blocking
- * - Progress updates every 1000 values
+ * - Batch processing (BATCH_SIZE=1000) prevents UI blocking
+ * - Progress updates after every batch
  * - Results stored incrementally
  * 
  * THEORETICAL SIGNIFICANCE:
@@ -428,11 +426,14 @@
          * @namespace CONFIG
          */
         const CONFIG = {
+            /** @type {number} Maximum allowed n value to prevent excessively long runs */
+            MAX_N: 1000000,
             /** @type {number} Maximum Collatz iterations before error (prevents infinite loops) */
             MAX_STEPS: 10000,
-            
+            /** @type {number} Number of n values processed per iteration before yielding to UI */
+            BATCH_SIZE: 100,
             /** @type {number} Milliseconds between n iterations (for visualization) */
-            ANIMATION_DELAY: 50
+            UI_DELAY: 10
         };
 
         /**
@@ -495,13 +496,12 @@
          * @example
          * generateCollatzSequence(5);
          * // Returns: [5, 16, 8, 4, 2, 1, 4, 2, 1]
-         * //          (includes cycle: 1→4→2→1)
+         * //          (includes one traversal of trivial cycle 1→4→2→1)
          */
         function generateCollatzSequence(n) {
             const sequence = [n];
             let current = n;
             let steps = 0;
-            let reachedOne = false;
             let cycleCount = 0;
             
             while (steps < CONFIG.MAX_STEPS) {
@@ -510,14 +510,11 @@
                 steps++;
                 
                 if (current === 1) {
-                    if (!reachedOne) {
-                        reachedOne = true;
-                    }
                     cycleCount++;
                     
                     // Continue for at least 1 more steps after first reaching 1
                     // This ensures we have {1, 4, 2, 1} to detect m=0 repetition
-                    if (cycleCount >= 2) {
+                    if (cycleCount >= 1) {
                         break;
                     }
                 }
@@ -728,14 +725,16 @@
          * @returns {Promise<void>} Resolves when all n values are processed or stopped
          * 
          * @description
-         * Systematically processes integers from {@link currentN} to {@link maxN}:
+         * Systematically processes integers from {@link currentN} to {@link maxN}
+         * in batches of {@link CONFIG.BATCH_SIZE} for efficiency:
          * 
-         * **For each n:**
-         * 1. Compute m_r using {@link processSingleN}
-         * 2. If m_r is new (not in {@link mrSet}), record it as a discovered class
-         * 3. Update {@link mrSet}, {@link mrList}, {@link mrFirstN}
-         * 4. Update UI with {@link updateUI} and {@link addMRToGrid}
-         * 5. Wait {@link CONFIG.ANIMATION_DELAY}ms for visualization
+         * **For each batch:**
+         * 1. Process {@link CONFIG.BATCH_SIZE} consecutive n values
+         * 2. For each n, compute m_r using {@link processSingleN}
+         * 3. If m_r is new (not in {@link mrSet}), record it as a discovered class
+         * 4. Update {@link mrSet}, {@link mrList}, {@link mrFirstN}
+         * 5. Update UI with {@link updateUI} and {@link addMRToGrid}
+         * 6. Wait {@link CONFIG.UI_DELAY}ms to allow UI updates between batches
          * 
          * **Stopping conditions:**
          * - User clicks "Stop" (sets {@link isRunning} = false)
@@ -751,27 +750,32 @@
          * 
          * @fires stopDiscovery when loop completes or is interrupted
          * 
-         * @note Empirical finding: All 42 known m_r values are discovered before n = 7287
+         * @see Remark 6.14 — all 42 known m_r values are discovered before n = 7287
          */
         async function discoveryLoop() {
             while (isRunning && currentN <= maxN) {
-                const mr = processSingleN(currentN);
-                
-                if (mr !== null && !mrSet.has(mr)) {
-                    mrSet.add(mr);
-                    mrList.push(mr);
-                    mrFirstN.set(mr, currentN);
-                    addMRToGrid(mr);
-                    document.getElementById('uniqueCount').textContent = mrList.length;
+                const batchEnd = Math.min(currentN + CONFIG.BATCH_SIZE - 1, maxN);
+                let lastMR = null;
+
+                for (let n = currentN; n <= batchEnd; n++) {
+                    const mr = processSingleN(n);
+                    lastMR = mr;
+
+                    if (mr !== null && !mrSet.has(mr)) {
+                        mrSet.add(mr);
+                        mrList.push(mr);
+                        mrFirstN.set(mr, n);
+                        addMRToGrid(mr);
+                        document.getElementById('uniqueCount').textContent = mrList.length;
+                    }
                 }
-                
-                updateUI(currentN, mr);
-                currentN++;
-                
-                // Small delay for visualization
-                await new Promise(resolve => setTimeout(resolve, CONFIG.ANIMATION_DELAY));
+
+                currentN = batchEnd + 1;
+                updateUI(currentN - 1, lastMR);
+
+                await new Promise(resolve => setTimeout(resolve, CONFIG.UI_DELAY));
             }
-            
+
             if (!isRunning || currentN > maxN) {
                 stopDiscovery();
             }
@@ -820,6 +824,12 @@
                 return;
             }
             
+            if (maxN > CONFIG.MAX_N) {
+                errorDiv.innerHTML = `<div class="error-message">Max n cannot exceed ${CONFIG.MAX_N.toLocaleString()}</div>`;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
             // Clear error and show content if valid
             errorDiv.style.display = 'none';
             contentDiv.style.display = 'flex';
