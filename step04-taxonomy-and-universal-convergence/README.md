@@ -30,24 +30,28 @@ $m^\* = 1$ is the local maximum between the two occurrences of $m_r = 0$. This p
 ## How to Use
 
 ### Input Parameters
+
 - **$n$**: Starting positive integer (required)
 
-### What You Get
+## What You Get
 
-**Classification Summary**:
+### Classification Summary
+
 - Class membership: $S(m_r)$
 - Taxonomic type: A, B or C (all elements of $S(0)$ are Type A)
 - Key invariants: $m_r$, $m^\*$ (local max), $M^\*$ (global max), distance $d(m_r)$
 - Regularity: R (regular) or I (irregular)
 
-**Visual m-Sequence Diagram**:
+### Visual m-Sequence Diagram
+
 - Color-coded parameter evolution
 - Highlights pseudocycle region (where $m_r$ repeats)
 - Shows global maximum $M^\*$ and local maximum $m^\*$
 - Each row shows taxonomy type and regularity inline
 - Traces wormhole to terminal pseudocycle $(m_r=0)$, i.e. the trivial cycle $(4, 2, 1)$
 
-**Class Examples**:
+### Class Examples
+
 - Multiple members of the same $S(m_r)$
 - Demonstrates $m^\*$ and $d(m_r)$ invariance across all members
 - Shows structural patterns (regular vs irregular)
