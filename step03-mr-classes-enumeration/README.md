@@ -7,7 +7,7 @@
 
 ## What It Does
 
-Interactive enumeration tool that discovers $m_r$ values by processing consecutive integers. For each $n$:
+Interactive enumeration tool that discovers $S(m_r)$ classes by processing consecutive integers. For each $n$:
 
 1. Computes the Collatz sequence and tuple transform
 2. Identifies the first repeated $m$-value ($m_r$)
