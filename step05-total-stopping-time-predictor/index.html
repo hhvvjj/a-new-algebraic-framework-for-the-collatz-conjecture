@@ -499,41 +499,41 @@
          * Multiplicities dictionary for instant stopping time calculation.
          * 
          * Maps base indices to their properties for the multiplicities algorithm.
-         * If n = index × 2^k, then stopping_time = base_length + k.
+         * If n = index × 2^k, then stopping_time = k + tau_mr.
          * 
-         * @type {Object<number, {mr: number, base_length: number}>}
+         * @type {Object<number, {mr: number, tau_mr: number}>}
          * @property {number} mr - The mr class value for this index
-         * @property {number} base_length - Pre-computed stopping time for the base index
+         * @property {number} tau_mr - Pre-computed stopping time for the base index
          */
         const MULTIPLICITIES_DICTIONARY = {
-            3: { mr: 1, base_length: 7 },
-            6: { mr: 2, base_length: 8 },
-            7: { mr: 3, base_length: 16 },
-            15: { mr: 7, base_length: 17 },
-            18: { mr: 8, base_length: 20 },
-            33: { mr: 16, base_length: 26 },
-            39: { mr: 19, base_length: 34 },
-            51: { mr: 25, base_length: 24 },
-            108: { mr: 53, base_length: 113 },
-            159: { mr: 79, base_length: 54 },
-            183: { mr: 91, base_length: 93 },
-            243: { mr: 121, base_length: 96 },
-            252: { mr: 125, base_length: 109 },
-            333: { mr: 166, base_length: 112 },
-            378: { mr: 188, base_length: 107 },
-            411: { mr: 205, base_length: 133 },
-            501: { mr: 250, base_length: 110 },
-            975: { mr: 487, base_length: 142 },
-            1185: { mr: 592, base_length: 150 },
-            1299: { mr: 649, base_length: 145 },
-            1335: { mr: 667, base_length: 145 },
-            1368: { mr: 683, base_length: 127 },
-            1731: { mr: 865, base_length: 148 },
-            1779: { mr: 889, base_length: 148 },
-            2307: { mr: 1153, base_length: 151 },
-            2430: { mr: 1214, base_length: 164 },
-            4857: { mr: 2428, base_length: 165 },
-            7287: { mr: 3643, base_length: 163 }
+            3: { mr: 1, tau_mr: 7 },
+            6: { mr: 2, tau_mr: 8 },
+            7: { mr: 3, tau_mr: 16 },
+            15: { mr: 7, tau_mr: 17 },
+            18: { mr: 8, tau_mr: 20 },
+            33: { mr: 16, tau_mr: 26 },
+            39: { mr: 19, tau_mr: 34 },
+            51: { mr: 25, tau_mr: 24 },
+            108: { mr: 53, tau_mr: 113 },
+            159: { mr: 79, tau_mr: 54 },
+            183: { mr: 91, tau_mr: 93 },
+            243: { mr: 121, tau_mr: 96 },
+            252: { mr: 125, tau_mr: 109 },
+            333: { mr: 166, tau_mr: 112 },
+            378: { mr: 188, tau_mr: 107 },
+            411: { mr: 205, tau_mr: 133 },
+            501: { mr: 250, tau_mr: 110 },
+            975: { mr: 487, tau_mr: 142 },
+            1185: { mr: 592, tau_mr: 150 },
+            1299: { mr: 649, tau_mr: 145 },
+            1335: { mr: 667, tau_mr: 145 },
+            1368: { mr: 683, tau_mr: 127 },
+            1731: { mr: 865, tau_mr: 148 },
+            1779: { mr: 889, tau_mr: 148 },
+            2307: { mr: 1153, tau_mr: 151 },
+            2430: { mr: 1214, tau_mr: 164 },
+            4857: { mr: 2428, tau_mr: 165 },
+            7287: { mr: 3643, tau_mr: 163 }
         };
 
         /**
@@ -681,87 +681,6 @@
         }
 
         /**
-         * Calculates stopping time for pure powers of 2 (PRIORITY 0 - most trivial case).
-         * 
-         * This is the MOST TRIVIAL and MOST EFFICIENT case, handling pure powers of 2.
-         * These values belong to S(m_r = 0) and reach 1 through successive divisions by 2,
-         * without passing through any pseudocycle with m_r > 0.
-         * 
-         * MATHEMATICAL FOUNDATION:
-         * For n = 2^k, the Collatz sequence is simply:
-         * 2^k → 2^(k-1) → 2^(k-2) → ... → 2 → 1
-         * 
-         * Therefore: σ(2^k) = k
-         * 
-         * SPECIAL CHARACTERISTICS:
-         * - Belongs to class S(0) - the simplest convergence case
-         * - No pseudocycle traversal (m_r = 0 directly)
-         * - Trajectory is pure divisions by 2
-         * - Most predictable sequence type
-         * - 100% efficiency (instant calculation)
-         * 
-         * EXAMPLES:
-         * n = 1 = 2^0  → σ(1) = 0   (already at 1)
-         * n = 2 = 2^1  → σ(2) = 1   (sequence: 2 → 1)
-         * n = 4 = 2^2  → σ(4) = 2   (sequence: 4 → 2 → 1)
-         * n = 8 = 2^3  → σ(8) = 3   (sequence: 8 → 4 → 2 → 1)
-         * n = 16 = 2^4 → σ(16) = 4  (sequence: 16 → 8 → 4 → 2 → 1)
-         * 
-         * @param {number} n - The number to check (must be positive integer)
-         * @returns {Object|null} Result object if n is a power of 2, null otherwise
-         * 
-         * @returns {Object} result - The power of 2 calculation result
-         * @returns {number} result.total_stopping_time - The exponent k (since σ(2^k) = k)
-         * @returns {string} result.algorithm - Always "power_of_2"
-         * @returns {string} result.prediction_type - Always "power_of_2"
-         * @returns {number} result.exponent - The exponent k where n = 2^k
-         * @returns {number} result.mr_value - Always 0 (belongs to S(0))
-         * @returns {number} result.n - The input value (for reference)
-         * 
-         * @example
-         * calculatePowerOf2StoppingTime(16)
-         * // Returns: {
-         * //   total_stopping_time: 4,  // σ(16) = log₂(16) = 4
-         * //   algorithm: "power_of_2",
-         * //   prediction_type: "power_of_2",
-         * //   exponent: 4,             // 16 = 2^4
-         * //   mr_value: 0,             // belongs to S(0)
-         * //   n: 16
-         * // }
-         * 
-         * calculatePowerOf2StoppingTime(1)
-         * // Returns: {
-         * //   total_stopping_time: 0,  // σ(1) = 0 (already at 1)
-         * //   algorithm: "power_of_2",
-         * //   prediction_type: "power_of_2",
-         * //   exponent: 0,             // 1 = 2^0
-         * //   mr_value: 0,
-         * //   n: 1
-         * // }
-         * 
-         * calculatePowerOf2StoppingTime(6)
-         * // Returns: null (6 is not a power of 2)
-         */
-        function calculatePowerOf2StoppingTime(n) {
-            // Check if n is a pure power of 2
-            if (isPowerOf2(n)) {
-                const exponent = Math.log2(n);
-                
-                return {
-                    total_stopping_time: exponent,
-                    algorithm: "power_of_2",
-                    prediction_type: "power_of_2",
-                    exponent: exponent,
-                    mr_value: 0,  // Powers of 2 belong to S(0)
-                    n: n
-                };
-            }
-            
-            // Not a power of 2
-            return null;
-        }
-
-        /**
          * Calculates the stopping time using the MULTIPLICITIES algorithm (instant calculation).
          * 
          * This is the SECOND MOST EFFICIENT method when applicable, achieving 100% efficiency by
@@ -769,7 +688,7 @@
          * 
          * CONCEPT:
          * If n = index × 2^k, where index is in MULTIPLICITIES_DICTIONARY, then:
-         * total_stopping_time = base_length + k
+         * total_stopping_time = k + tau_mr
          * 
          * This exploits the mathematical property that multiplying an entry point by
          * powers of 2 adds exactly one step per power (since each division by 2 is
@@ -778,7 +697,7 @@
          * ALGORITHM:
          * 1. Check if n is divisible by any dictionary index
          * 2. Verify that n/index is a power of 2 (ratio = 2^k)
-         * 3. Calculate: total_stopping_time = base_length + log₂(ratio)
+         * 3. Calculate: total_stopping_time = log₂(ratio) + tau_mr
          * 
          * IMPORTANT: Iterates entries in descending order (largest index first) to ensure
          * correct classification when an index is a multiple of another (e.g., e(mr)=6 vs e(mr)=3)
@@ -792,8 +711,8 @@
          * @returns {string} result.prediction_type - Always "multiplicity_found"
          * @returns {number} result.index_used - Which dictionary index was used
          * @returns {number} result.ratio - n/index (always a power of 2)
-         * @returns {number} result.base_length - Pre-calculated length for the index
-         * @returns {number} result.additional_steps - log₂(ratio)
+         * @returns {number} result.tau_mr - Pre-calculated length for the index
+         * @returns {number} result.analytical_steps - log₂(ratio)
          * @returns {number} result.mr_value - The mr class value
          * @returns {number} result.n - The input value (for reference)
          * 
@@ -801,13 +720,13 @@
          * // n = 48, index = 6, ratio = 8 = 2³
          * calculateMultiplicityStoppingTime(48)
          * // Returns: {
-         * //   total_stopping_time: 11,  // base_length(6) + 3 = 8 + 3
+         * //   total_stopping_time: 11,  // tau_mr(6) + 3 = 8 + 3
          * //   algorithm: "multiplicity",
          * //   prediction_type: "multiplicity_found",
          * //   index_used: 6,
          * //   ratio: 8,
-         * //   base_length: 8,
-         * //   additional_steps: 3,
+         * //   tau_mr: 8,
+         * //   analytical_steps: 3,
          * //   mr_value: 2,
          * //   n: 48
          * // }
@@ -815,6 +734,23 @@
          * calculateMultiplicityStoppingTime(27)  // Returns: null (not a multiplicity)
          */
         function calculateMultiplicityStoppingTime(n) {
+
+            // FAST-PATH: Pure powers of 2 (n = 2^k, where e(m_r)=1)
+            // σ(2^k) = k, η=1 (no iteration required)
+            if (isPowerOf2(n)) {
+                const k = Math.log2(n);
+                return {
+                    total_stopping_time: k,
+                    algorithm: "multiplicity",
+                    prediction_type: "multiplicity_found",
+                    index_used: 1,
+                    ratio: n,
+                    tau_mr: 0,
+                    analytical_steps: k,
+                    mr_value: 0,
+                    n: n
+                };
+            }
 
             // Iterate through all indices in the multiplicities dictionary
             for (const [index, data] of Object.entries(MULTIPLICITIES_DICTIONARY).sort((a, b) => b[0] - a[0])) {
@@ -826,10 +762,10 @@
                     // Calculate additional steps as log2(ratio)
                     const ratio = n / idx;
                     if (isPowerOf2(ratio)) {
-                        const additionalSteps = Math.log2(ratio);
+                        const analyticalSteps = Math.log2(ratio);
 
-                        // Total stopping time = base_length + additional steps
-                        const totalStoppingTime = data.base_length + additionalSteps;
+                        // Total stopping time = additional steps + tau_mr
+                        const totalStoppingTime = analyticalSteps + data.tau_mr;
                         
                         // Return the result object
                         return {
@@ -838,8 +774,8 @@
                             prediction_type: "multiplicity_found",
                             index_used: idx,
                             ratio: ratio,
-                            base_length: data.base_length,
-                            additional_steps: additionalSteps,
+                            tau_mr: data.tau_mr,
+                            analytical_steps: analyticalSteps,
                             n: n,
                             mr_value: data.mr
                         };
@@ -908,111 +844,13 @@
         }
 
         /**
-         * Generates the Collatz sequence using WORMHOLE optimization (hybrid approach).
-         * 
-         * Instead of computing the entire sequence, this function checks at each step
-         * if the current value is a "wormhole entry point" (exists in WORMHOLES_DICTIONARY).
-         * When found, it appends the pre-calculated wormhole sequence and finishes immediately.
-         * 
-         * CONCEPT:
-         * Wormhole entry points are values with known complete trajectories to 1.
-         * Once reached, no further computation is needed - we just append the known path.
-         * 
-         * PROCESS:
-         * 1. Compute sequence step by step
-         * 2. At each step, check if current value is in WORMHOLES_DICTIONARY
-         * 3. If found: append pre-calculated wormhole and return
-         * 4. If not found: continue computing
-         * 5. If reach 1 without finding wormhole: return standard sequence
-         * 
-         * @param {number} n - The starting number (must be positive integer)
-         * @returns {Object} Object containing sequence and entry point information
-         * @throws {Error} If computation exceeds MAX_COMPUTATION_STEPS iterations
-         * 
-         * @returns {Object} result - The wormhole sequence result
-         * @returns {Array<number>} result.sequence - Complete array from n to 1
-         * @returns {Object} result.entry_point_info - Information about wormhole usage
-         * @returns {boolean} result.entry_point_info.wormhole_used - Whether a wormhole was found
-         * @returns {number} [result.entry_point_info.entry_point_found] - Which value triggered the wormhole
-         * @returns {number} [result.entry_point_info.entry_point_position] - At which step it was found
-         * @returns {number} [result.entry_point_info.wormhole_length] - Length of the wormhole sequence
-         * @returns {number} [result.entry_point_info.mr_value] - The mr class value
-         * 
-         * @example
-         * generateWormholeSequence(14)
-         * // Returns: {
-         * //   sequence: [14, 7, 22, 11, ..., 1],
-         * //   entry_point_info: {
-         * //     wormhole_used: true,
-         * //     entry_point_found: 14,
-         * //     entry_point_position: 0,
-         * //     wormhole_length: 18,
-         * //     mr_value: 6
-         * //   }
-         * // }
-         * 
-         * generateWormholeSequence(5)
-         * // Returns: {
-         * //   sequence: [5, 16, 8, 4, 2, 1],
-         * //   entry_point_info: { wormhole_used: false }
-         * // }
-         */
-        function generateWormholeSequence(n) {
-            const sequence = [];      // Array to store the sequence
-            let current = n;          // Start with the input number
-            let steps = 0;            // Counter for safety limit
-            
-            // Continue until we reach 1
-            while (current !== 1) {
-                sequence.push(current);
-                
-                // CHECK: Is current number a wormhole entry point?
-                if (WORMHOLES_DICTIONARY[current]) {
-                    // WORMHOLE FOUND! Get the pre-calculated sequence
-                    const wormholeSeq = WORMHOLES_DICTIONARY[current].wormhole;
-                    // Append the wormhole sequence (skip first element, it's already in sequence)
-                    sequence.push(...wormholeSeq.slice(1));
-                    
-                    // Return with wormhole information
-                    return {
-                        sequence: sequence,
-                        entry_point_info: {
-                            entry_point_found: current,
-                            entry_point_position: steps,
-                            wormhole_used: true,
-                            wormhole_length: wormholeSeq.length,
-                            mr_value: WORMHOLES_DICTIONARY[current].mr
-                        }
-                    };
-                }
-                
-                // No wormhole found yet, continue computing
-                current = nextCollatzValue(current);
-                steps++;
-                
-            // Safety check: prevent infinite loops
-            if (steps > MAX_COMPUTATION_STEPS) {
-                    throw new Error(`Exceeded ${MAX_COMPUTATION_STEPS} steps`);
-                }
-            }
-
-            // Reached 1 without finding a wormhole
-            sequence.push(1);
-            return {
-                sequence: sequence,
-                entry_point_info: { wormhole_used: false }
-            };
-        }
-
-        /**
          * Calculates the optimized stopping time using the best available algorithm.
          * 
          * This is the MAIN OPTIMIZATION FUNCTION that orchestrates the entire prediction
          * strategy. It tries algorithms in order of efficiency, using the first applicable one.
          * 
          * STRATEGY (in priority order):
-         * 0. Try POWERS OF 2 algorithm first (most trivial, instant, 100% efficient)
-         * 1. Try MULTIPLICITIES algorithm second (instant, 100% efficient)
+         * 1. Try MULTIPLICITIES algorithm first (instant, 100% efficient; includes powers of 2 as special case)
          * 2. If not applicable, use WORMHOLE algorithm (hybrid approach)
          * 3. Worst case: full computation required
          * 
@@ -1028,14 +866,14 @@
          * - total_stopping_time: calculated instantly via formula
          * - algorithm: "multiplicity"
          * - prediction_type: "multiplicity_found"
-         * - Additional fields: index_used, ratio, base_length, additional_steps, mr_value
+         * - Additional fields: index_used, ratio, tau_mr, analytical_steps, mr_value
          * 
          * WORMHOLE RESULT (entry point found):
-         * - total_stopping_time: computed_steps + saved_steps
+         * - total_stopping_time: computed_steps + tau_mr
          * - algorithm: "wormhole"
          * - prediction_type: "entry_point_found"
          * - Additional fields: entry_point_found, entry_point_position, computed_steps,
-         *   saved_steps, wormhole_length, mr_value
+         *   tau_mr, wormhole_length, mr_value
          * 
          * STANDARD RESULT (no optimization available):
          * - total_stopping_time: fully computed via iteration
@@ -1066,13 +904,7 @@
          */
         function calculateOptimizedStoppingTime(n) {
 
-            // PRIORITY 0: Try powers of 2 algorithm (most trivial and efficient)
-            const powerOf2Result = calculatePowerOf2StoppingTime(n);
-            if (powerOf2Result !== null) {
-                return powerOf2Result;
-            }
-
-            // PRIORITY 1: Try multiplicities algorithm (second most efficient)
+            // PRIORITY 1: Try multiplicities algorithm (includes powers of 2 as special case)
             const multiplicityResult = calculateMultiplicityStoppingTime(n);
             if (multiplicityResult !== null) {
                 return multiplicityResult;
@@ -1098,8 +930,8 @@
                 // CHECK: Is this a wormhole entry point?
                 if (WORMHOLES_DICTIONARY[current]) {
                     const wormholeSeq = WORMHOLES_DICTIONARY[current].wormhole;
-                    const wormholeSteps = wormholeSeq.length - 1;
-                    const totalSteps = steps + wormholeSteps;
+                    const tau_mr = wormholeSeq.length - 1;
+                    const totalSteps = steps + tau_mr;
                     
                     // Return wormhole result
                     return {
@@ -1109,7 +941,7 @@
                         entry_point_found: current,
                         entry_point_position: steps,
                         computed_steps: steps,
-                        saved_steps: wormholeSteps,
+                        tau_mr: tau_mr,
                         wormhole_length: wormholeSeq.length,
                         mr_value: WORMHOLES_DICTIONARY[current].mr
                     };
@@ -1280,112 +1112,68 @@
          * appropriate color coding to indicate the algorithm type and efficiency.
          * 
          * ALGORITHM CLASSIFICATION:
-         * The function handles three main algorithms with special cases:
+         * The function handles three main algorithms:
          * 
-         * 1. MULTIPLICITIES (100% efficiency)
+         * 1. MULTIPLICITIES (η=1, 100% efficiency)
          *    - Instant calculation using pre-computed patterns
-         *    - Computed steps: 0
-         *    - Saved steps: total_stopping_time
-         * 
-         * 2. WORMHOLE (variable efficiency)
-         *    - Entry point found: hybrid calculation
-         *    - Computed steps: steps until entry point
-         *    - Saved steps: remaining steps from dictionary
-         *    - Efficiency: (saved / total) × 100
-         * 
-         * 3. STANDARD (0% or 100% efficiency)
-         *    - No optimization available
          *    - Two subcases:
-         *      a) Powers of 2 (special): 100% efficiency
-         *         - Although uses standard iteration, it's predictable
-         *         - Computed steps: 0 (conceptually predictable)
-         *         - Saved steps: total_stopping_time
+         *      a) General: n = e(m_r) × 2^k, e(m_r) > 1
+         *         - computed steps: 0, saved steps: σ(n)
+         *      b) Powers of 2: n = 2^k (e(m_r)=1, τ=0)
+         *         - computed steps: 0, saved steps: σ(n)
          *         - Formula: σ(2^k) = k
-         *      b) Non-powers of 2: 0% efficiency
-         *         - Requires full iteration
-         *         - Computed steps: total_stopping_time
-         *         - Saved steps: 0
-         *         - Not predictable in advance
          * 
-         * CARDS DISPLAYED (in order):
-         * 1. Algorithm Used - Which method was applied
-         *    - "Multiplicity" for multiplicities algorithm
-         *    - "Wormhole" for wormhole with entry point found
-         *    - "Standard" for both no_entry_point and power_of_2
-         *      (power_of_2 is shown as Standard, not as separate algorithm)
+         * 2. WORMHOLE (η=τ(m_r)/σ(n), variable efficiency)
+         *    - Entry point found: hybrid calculation
+         *    - computed steps: k (steps iterated to reach e(m_r))
+         *    - saved steps: τ(m_r)
+         *    - η = τ(m_r)/σ(n) = 1 - k/σ(n)
          * 
-         * 2. Total Stopping Time - Final answer (total steps to reach 1)
+         * 3. STANDARD (η=0, 0% efficiency)
+         *    - No optimization available
+         *    - computed steps: σ(n), saved steps: 0
          * 
-         * 3. Computed Steps - Steps actually calculated
-         *    - Yellow color (#fdcb6e) indicates computational work
-         *    - 0 for Multiplicities and Powers of 2 (predictable)
-         *    - Actual steps for Wormhole and non-power-of-2 Standard
-         * 
-         * 4. Saved Steps - Steps avoided by optimization or predictability
-         *    - Green color (#2ecc71) indicates efficiency gained
-         *    - Full total for Multiplicities and Powers of 2
-         *    - Wormhole length for Wormhole algorithm
-         *    - 0 for non-predictable Standard
-         * 
-         * 5. Class mr - The mr class value from the pseudocycle
-         *    - 0 for S(0) class (including powers of 2)
-         *    - Specific mr value for other classes
-         *    - N/A when not applicable
-         * 
-         * 6. Efficiency - Percentage of steps saved
-         *    - 100.0% for Multiplicities (instant calculation)
-         *    - 100.0% for Powers of 2 (predictable formula)
-         *    - Variable for Wormhole (depends on entry point position)
-         *    - 0.0% for non-predictable Standard
-         * 
-         * POWER OF 2 SPECIAL HANDLING:
-         * Powers of 2 are detected via two possible indicators:
-         * - result.algorithm === 'power_of_2' (if explicitly detected)
-         * - result.prediction_type === 'power_of_2' (alternative indicator)
-         * 
-         * When detected, they are:
-         * - Displayed as "Standard" algorithm (not a separate algorithm)
-         * - Treated as 100% efficient (due to predictability)
-         * - Shown with 0 computed steps and full saved steps
-         * - Belong to class S(0) - Type A
-         * 
-         * This reflects the theoretical distinction: powers of 2 use standard
-         * iteration but are mathematically predictable via σ(2^k) = k.
-         * 
-         * COLOR CODING:
-         * - Computed steps: Yellow (#fdcb6e) - indicates computational work done
-         * - Saved steps: Green (#2ecc71) - indicates efficiency gained
-         * 
-         * EFFICIENCY CALCULATION:
-         * - Multiplicity: 100% (instant calculation, no iteration needed)
-         * - Power of 2: 100% (predictable via formula, despite iteration)
-         * - Wormhole: (saved_steps / total_stopping_time) × 100
-         * - Standard (non-power-of-2): 0% (no optimization available)
+         * EFFICIENCY DEFINITION (aligned with paper):
+         * η = 1 - k/σ(n) where k are the iterated steps:
+         *    Multiplicities: k=0 (k obtained analytically) → η=1
+         *    Wormholes:      k=steps to e(m_r)             → η=τ(m_r)/σ(n)
+         *    Standard:       k=σ(n)                         → η=0
          * 
          * @param {Object} result - The optimized result object
          * @param {number} result.total_stopping_time - Total steps to reach 1
-         * @param {string} result.algorithm - "multiplicity", "wormhole", or "power_of_2"
-         * @param {string} result.prediction_type - Type of prediction used
-         *        ("multiplicity_found", "entry_point_found", "no_entry_point", 
-         *         "trivial", or "power_of_2")
-         * @param {number} [result.computed_steps] - Steps actually computed (wormhole/standard)
-         * @param {number} [result.saved_steps] - Steps saved (wormhole)
+         * @param {string} result.algorithm - "multiplicity" or "wormhole"
+         * @param {string} result.prediction_type - "multiplicity_found", "entry_point_found", or "no_entry_point"
+         * @param {number} [result.index_used] - Which dictionary index was used (1 indicates powers of 2, S(0) case)
+         * @param {number} [result.computed_steps] - Steps actually iterated
+         * @param {number} [result.saved_steps] - Steps saved via dictionary
          * @param {number} [result.mr_value] - The mr class value
-         * 
-         * @param {number} n - The input number (needed to detect powers of 2)
-         * 
+         * @param {number} n - The input number
          * @returns {void} Updates the DOM element with id 'infoGrid'
          * 
          * @example
-         * // MULTIPLICITY CASE
+         * // POWER OF 2 CASE (e(m_r)=1, special multiplicity)
+         * displayInfoCards({
+         *   total_stopping_time: 9,
+         *   algorithm: "multiplicity",
+         *   prediction_type: "multiplicity_found",
+         *   index_used: 1,
+         *   tau_mr: 0,
+         *   analytical_steps: 9,
+         *   mr_value: 0
+         * }, 512);
+         * // → Shows: Algorithm=Multiplicity S(0), Total=9, Computed=0, Saved=9, mr=0, η=1
+         * 
+         * // GENERAL MULTIPLICITY CASE
          * displayInfoCards({
          *   total_stopping_time: 11,
          *   algorithm: "multiplicity",
          *   prediction_type: "multiplicity_found",
+         *   index_used: 6,
+         *   tau_mr: 8,
+         *   analytical_steps: 3,
          *   mr_value: 2
          * }, 48);
-         * // → Shows: Algorithm=Multiplicity, Total=11, Computed=0, Saved=11,
-         * //          mr=2, Efficiency=100%
+         * // → Shows: Algorithm=Multiplicity, Total=11, Computed=0, Saved=11, mr=2, η=1
          * 
          * // WORMHOLE CASE
          * displayInfoCards({
@@ -1396,88 +1184,58 @@
          *   saved_steps: 95,
          *   mr_value: 60
          * }, 27);
-         * // → Shows: Algorithm=Wormhole, Total=111, Computed=16, Saved=95,
-         * //          mr=60, Efficiency=85.6%
+         * // → Shows: Algorithm=Wormhole, Total=111, Computed=16, Saved=95, mr=60, η=0.8559
          * 
-         * // POWER OF 2 CASE (special Standard)
+         * // STANDARD CASE
          * displayInfoCards({
-         *   total_stopping_time: 9,
-         *   algorithm: "power_of_2",
-         *   prediction_type: "power_of_2",
-         *   mr_value: 0
-         * }, 512);
-         * // → Shows: Algorithm=Standard, Total=9, Computed=0, Saved=9,
-         * //          mr=0, Efficiency=100%
-         * // Note: Displays as "Standard" but with 100% efficiency (predictable)
-         * 
-         * // STANDARD CASE (non-power-of-2)
-         * displayInfoCards({
-         *   total_stopping_time: 106,
+         *   total_stopping_time: 17,
          *   algorithm: "wormhole",
          *   prediction_type: "no_entry_point",
-         *   computed_steps: 106,
+         *   computed_steps: 17,
          *   saved_steps: 0
-         * }, 31);
-         * // → Shows: Algorithm=Standard, Total=106, Computed=106, Saved=0,
-         * //          mr=0, Efficiency=0%
-         * 
-         * @see isPowerOf2 - Function used to detect power of 2 special case
-         * @see displayStrategy - Shows detailed explanation of the algorithm used
+         * }, 93);
+         * // → Shows: Algorithm=Standard, Total=17, Computed=17, Saved=0, mr=0, η=0
          */
         function displayInfoCards(result, n) {
             const infoGrid = document.getElementById('infoGrid');
-            
-            // Check if n is a power of 2 (for special handling)
-            const isPower2 = isPowerOf2(n);
             
             // Determine algorithm name for display
             let algorithm;
             
             if (result.algorithm === 'multiplicity') {
-                algorithm = 'Multiplicity';
-            } else if (result.algorithm === 'power_of_2') {
-                // Power of 2 special case → show as Standard (not separate algorithm)
-                algorithm = 'Standard';
+                // Powers of 2 are special multiplicities with e(m_r)=1
+                algorithm = result.index_used === 1 
+                    ? 'Multiplicity S(0)' 
+                    : 'Multiplicity';
             } else if (result.algorithm === 'wormhole') {
-                if (result.prediction_type === 'entry_point_found') {
-                    algorithm = 'Wormhole';
-                } else if (result.prediction_type === 'no_entry_point' || result.prediction_type === 'trivial') {
-                    algorithm = 'Standard';
-                } else {
-                    algorithm = 'Standard';
-                }
+                algorithm = result.prediction_type === 'entry_point_found' 
+                    ? 'Wormhole' 
+                    : 'Standard';
             } else {
                 algorithm = 'Standard';
             }
 
             // Determine mr value for display
             const mrValue = result.mr_value !== undefined ? result.mr_value : 
-                (result.prediction_type === 'no_entry_point' || result.prediction_type === 'trivial' || result.prediction_type === 'power_of_2' ? 0 : 'N/A');
+                (result.prediction_type === 'no_entry_point' || result.prediction_type === 'trivial' ? 0 : 'N/A');
             
-            // Calculate computed/saved steps and efficiency
-            // Different logic for each algorithm type
+            // Calculate computed/saved steps and efficiency η = 1 - k/σ(n)
             let computedSteps, savedSteps, efficiency;
             
             if (result.algorithm === 'multiplicity') {
-                // Multiplicities: instant calculation, 100% efficient
-                computedSteps = 0;
-                savedSteps = result.total_stopping_time;
-                efficiency = '100.0';
-            } else if (result.algorithm === 'power_of_2' || result.prediction_type === 'power_of_2') {
-                // Power of 2: predictable formula, treated as 100% efficient
-                // Despite using standard iteration, the formula σ(2^k) = k makes it predictable
+                // Multiplicities: k=0 (obtained analytically), η=1
                 computedSteps = 0;
                 savedSteps = result.total_stopping_time;
                 efficiency = '100.0';
             } else {
-                // Wormhole or standard non-power-of-2: actual computation
+                // Wormhole or Standard
                 computedSteps = result.computed_steps || 0;
                 savedSteps = result.saved_steps || 0;
-                efficiency = (savedSteps && result.total_stopping_time > 0) 
-                    ? ((savedSteps / result.total_stopping_time) * 100).toFixed(1) 
+                efficiency = result.total_stopping_time > 0
+                    ? ((1 - computedSteps / result.total_stopping_time) * 100).toFixed(1)
                     : '0.0';
             }
-        
+
             // Generate HTML for all info cards
             infoGrid.innerHTML = `
                 <div class="info-card">
@@ -1485,23 +1243,23 @@
                     <div class="info-value">${algorithm}</div>
                 </div>
                 <div class="info-card">
-                    <div class="info-label">Total Stopping Time</div>
+                    <div class="info-label">Total Stopping Time σ(n)</div>
                     <div class="info-value">${result.total_stopping_time}</div>
                 </div>
                 <div class="info-card">
-                    <div class="info-label">Computed Steps</div>
+                    <div class="info-label">Computed Steps k</div>
                     <div class="info-value computed-value">${computedSteps}</div>
                 </div>
                 <div class="info-card">
-                    <div class="info-label">Saved Steps</div>
+                    <div class="info-label">Saved Steps τ(m<sub>r</sub>)</div>
                     <div class="info-value saved-value">${savedSteps}</div>
                 </div>
                 <div class="info-card">
-                    <div class="info-label">Class m<sub>r</sub></div>
+                    <div class="info-label">Class S(m<sub>r</sub>)</div>
                     <div class="info-value">${mrValue}</div>
                 </div>
                 <div class="info-card">
-                    <div class="info-label">Efficiency</div>
+                    <div class="info-label">Efficiency η</div>
                     <div class="info-value">${efficiency}%</div>
                 </div>
             `;
@@ -1676,81 +1434,67 @@
          * helping users understand the mathematical reasoning behind the optimization.
          * The explanation adapts based on which algorithm was used.
          * 
-         * ALGORITHM TYPES:
+         * ALGORITHM TYPES (aligned with paper):
          * 
-         * There are THREE main algorithms:
-         * 1. Multiplicities - Instant calculation using pre-computed patterns
-         * 2. Wormhole - Hybrid approach with dictionary lookup
-         * 3. Standard - Full iteration (with special notation for powers of 2)
+         * 1. MULTIPLICITIES (η=1): Two subcases
+         *    a) General: n = e(m_r) × 2^k, e(m_r) > 1
+         *       - Shows entry point e(m_r), τ(m_r), k obtained analytically
+         *       - Formula: σ(n) = k + τ(m_r)
+         *    b) Powers of 2: n = 2^k (e(m_r)=1, τ=0)
+         *       - Special multiplicity with e(m_r)=1
+         *       - Formula: σ(2^k) = k (obtained analytically, no iteration)
          * 
-         * EXPLANATION TYPES:
+         * 2. WORMHOLE (η=τ(m_r)/σ(n)):
+         *    - Shows entry point e(m_r) reached after k iterated steps
+         *    - Formula: σ(n) = k + τ(m_r)
+         *    - η = τ(m_r)/σ(n) = 1 - k/σ(n)
          * 
-         * 1. MULTIPLICITY STRATEGY:
-         *    - Shows which index was used from the dictionary
-         *    - Explains the ratio calculation (n/index)
-         *    - Shows the additional steps calculation (log₂(ratio))
-         *    - Shows the final addition (base_length + additional_steps)
-         *    - Mentions the mr class value
-         *    Example: "Uses index 6 from mr=2, ratio 48/6=8, steps log₂(8)=3,
-         *             total 8+3=11"
-         * 
-         * 2. WORMHOLE STRATEGY (entry point found):
-         *    - Shows which entry point was reached and when
-         *    - Shows at which step it was found
-         *    - Shows how many steps were saved
-         *    - Shows the final addition (computed + saved)
-         *    - Mentions the mr class value
-         *    - Describes efficiency (most efficient if found at step 0)
-         *    Example: "Entry point 121 from mr=60 reached at step 16,
-         *             saving 95 steps, total 16+95=111"
-         * 
-         * 3. STANDARD STRATEGY (no optimization):
-         *    - Two subcases:
-         *      a) Powers of 2 (predictable): n = 2^k, belongs to S(0) Type A
-         *         - Explains it's predictable: σ(2^k) = k
-         *         - Notes it still requires full iteration
-         *         - Sequence: successive divisions by 2
-         *         - Special visual indicator (⭐ or blue color)
-         *      b) Non-powers of 2 (unpredictable): belongs to S(0) Type A
-         *         - Explains full computation was required
-         *         - No predictability, must iterate until reaching 1
-         *    Example (power of 2): "n = 16 = 2^4, predictable but requires iteration"
-         *    Example (non-power): "Full iteration required, no optimizations available"
-         * 
-         * EDUCATIONAL VALUE:
-         * This component helps users understand WHY the algorithm worked the way it did,
-         * making the tool pedagogically valuable by explaining the mathematical structure
-         * behind each case.
+         * 3. STANDARD (η=0):
+         *    - Full iteration required, no optimization available
          * 
          * @param {Object} result - The optimized result object
-         * @param {number} n - The input number (needed to detect powers of 2)
+         * @param {number} n - The input number
          * @param {string} result.algorithm - "multiplicity" or "wormhole"
          * @param {string} result.prediction_type - Type of prediction used
-         * @param {number} [result.index_used] - Dictionary index (multiplicity)
-         * @param {number} [result.ratio] - n/index ratio (multiplicity)
-         * @param {number} [result.base_length] - Base length (multiplicity)
-         * @param {number} [result.additional_steps] - Additional steps (multiplicity)
+         * @param {number} [result.index_used] - Entry point e(m_r) (1 for powers of 2, S(0) case)
+         * @param {number} [result.ratio] - n/e(m_r) ratio (always a power of 2)
+         * @param {number} [result.tau] - Precomputed τ(m_r)
+         * @param {number} [result.analytical_steps] - k = log₂(n/e(m_r))
          * @param {number} [result.entry_point_found] - Entry point value (wormhole)
-         * @param {number} [result.entry_point_position] - Position found (wormhole)
-         * @param {number} [result.wormhole_length] - Wormhole length (wormhole)
-         * @param {number} [result.computed_steps] - Computed steps (wormhole)
-         * @param {number} [result.saved_steps] - Saved steps (wormhole)
+         * @param {number} [result.entry_point_position] - k iterated steps to e(m_r)
+         * @param {number} [result.wormhole_length] - Length of wormhole sequence
+         * @param {number} [result.computed_steps] - k iterated steps
+         * @param {number} [result.saved_steps] - τ(m_r) saved steps
          * @param {number} [result.mr_value] - The mr class value
          * @returns {void} Updates the DOM element with id 'strategyContent'
          * 
          * @example
-         * // MULTIPLICITY CASE
+         * // POWER OF 2 CASE (special multiplicity, e(m_r)=1)
          * displayStrategy({
          *   algorithm: "multiplicity",
+         *   prediction_type: "multiplicity_found",
+         *   index_used: 1,
+         *   tau_mr: 0,
+         *   analytical_steps: 9,
+         *   total_stopping_time: 9,
+         *   mr_value: 0
+         * }, 512);
+         * // → "Special multiplicity: 512 = 1 × 2^9, e(m_r)=1, τ=0
+         * //    k=9 obtained analytically, σ(512) = 0 + 9 = 9, η=1"
+         * 
+         * // GENERAL MULTIPLICITY CASE
+         * displayStrategy({
+         *   algorithm: "multiplicity",
+         *   prediction_type: "multiplicity_found",
          *   index_used: 6,
          *   ratio: 8,
-         *   base_length: 8,
-         *   additional_steps: 3,
+         *   tau_mr: 8,
+         *   analytical_steps: 3,
          *   total_stopping_time: 11,
-         *   mr_value: 2,
-         *   n: 48
+         *   mr_value: 2
          * }, 48);
-         * // → Shows detailed multiplicity calculation explanation
+         * // → "e(m_r)=6 from mr=2, τ=8, k=log₂(8)=3 obtained analytically
+         * //    σ(48) = 3 + 8 = 11, η=1"
          * 
          * // WORMHOLE CASE
          * displayStrategy({
@@ -1763,63 +1507,75 @@
          *   total_stopping_time: 111,
          *   mr_value: 60
          * }, 27);
-         * // → Shows wormhole optimization explanation
+         * // → "e(m_r)=121 from mr=60 reached after k=16 iterated steps
+         * //    τ(m_r)=95, σ(27) = 16 + 95 = 111, η=95/111≈0.856"
          * 
-         * // STANDARD CASE - POWER OF 2
+         * // STANDARD CASE
          * displayStrategy({
          *   algorithm: "wormhole",
          *   prediction_type: "no_entry_point",
-         *   total_stopping_time: 4,
-         *   computed_steps: 4,
+         *   total_stopping_time: 17,
+         *   computed_steps: 17,
          *   saved_steps: 0
-         * }, 16);
-         * // → Shows: "Special case: 16 = 2^4, predictable but requires iteration"
-         * 
-         * // STANDARD CASE - NON-POWER OF 2
-         * displayStrategy({
-         *   algorithm: "wormhole",
-         *   prediction_type: "no_entry_point",
-         *   total_stopping_time: 106,
-         *   computed_steps: 106,
-         *   saved_steps: 0
-         * }, 31);
-         * // → Shows: "Full iteration required, no optimizations available"
+         * }, 93);
+         * // → "Full iteration required, σ(93)=17, η=0"
          */
         function displayStrategy(result, n) {
             const strategyContent = document.getElementById('strategyContent');
             
-            // CASE 1: MULTIPLICITY algorithm was used
             if (result.algorithm === 'multiplicity') {
-                strategyContent.innerHTML = `
-                    <div class="strategy-item">Instant calculation using multiplicities algorithm: it takes the predefined index <strong>${result.index_used}</strong> from class m<sub>r</sub> = ${result.mr_value} 
-                        and its associated base length <strong>${result.base_length}</strong>. Then it calculates the ratio (n/index) = <strong>${result.n}/${result.index_used} = ${result.ratio}</strong> and the
-                        additional steps <strong>log<sub>2</sub>(${result.ratio}) = ${result.additional_steps}</strong>. Finally, the total number of steps is calculated as ${result.base_length} + ${result.additional_steps} = <strong>${result.total_stopping_time}</strong></div>
-                `;
-            // CASE 2: WORMHOLE entry point was found
-            } else if (result.prediction_type === 'entry_point_found') {
-                const efficiency = result.entry_point_position === 0 ? 'most efficient' : 'partially optimized';
-                strategyContent.innerHTML = `
-                    <div class="strategy-item">Hybrid calculation using wormholes algorithm: the wormhole entry point <strong>${result.entry_point_found}</strong> from class m<sub>r</sub> = ${result.mr_value}, is 
-                        reached at step <strong>${result.entry_point_position}</strong>, saving <strong>${result.wormhole_length - 1}</strong> steps. Finally, the total number of steps is calculated as ${result.computed_steps} + ${result.saved_steps} = <strong>${result.total_stopping_time}</strong></div>
-                `;
-            } else {
-                // CASE 3: STANDARD - Check for Power of 2 FIRST
-                if (isPowerOf2(n)) {
-                    const exponent = Math.log2(n);
+                
+                if (result.index_used === 1) { // Multiplicity S(0)
+                    // CASE 1a: Powers of 2 (special multiplicity with e(m_r)=1, τ=0)
                     strategyContent.innerHTML = `
                         <div class="strategy-item">
-                            <strong>Standard Algorithm (special case powers of 2):</strong> n = ${n} = 2<sup>${exponent}</sup> requires ${exponent} steps of successive divisions by 2.
-                            This case is predictable since σ(2<sup>${exponent}</sup>) = log<sub>2</sub>(2<sup>${exponent}</sup>) = ${exponent}
+                            <strong>Multiplicities algorithm (special case of S(0)):</strong> the Collatz function (only the even branch) is applied iteratively 
+                            until reaching the entry point e(m<sub>r</sub>) = <strong>1</strong>, 
+                            taking k = log<sub>2</sub>(${n}/1) = log<sub>2</sub>(${n}) = ${result.analytical_steps} analytically steps (no iterations required).
+                            From there, the τ(m<sub>r</sub>) = <strong>0</strong> indicates no steps needed. </br>
+                            Finally, σ(${n}) = k + τ(m<sub>r</sub>) = ${result.analytical_steps} + 0 = <strong>${result.total_stopping_time}</strong>, with η=1
                         </div>
                     `;
                 } else {
-                    // CASE 4: STANDARD - Non-power of 2
+                    // CASE 1b: General multiplicity (e(m_r) > 1)
                     strategyContent.innerHTML = `
                         <div class="strategy-item">
-                            <strong>Standard Algorithm:</strong> Full computation required, so the sequence must be iterated completely until reaching 1.
+                            <strong>Multiplicities algorithm:</strong> the Collatz function (only the even branch) is applied 
+                            iteratively until reaching the entry point e(m<sub>r</sub>) = <strong>${result.index_used}</strong>, 
+                            taking k = log<sub>2</sub>(${result.n}/${result.index_used}) = log<sub>2</sub>(${result.ratio}) = 
+                            <strong>${result.analytical_steps}</strong> analytical steps (no iterations required). 
+                            From there, the τ(m<sub>r</sub>) = <strong>${result.tau_mr}</strong> remaining steps are obtained 
+                            from the dictionary. </br>
+                            Finally, σ(${n}) = k + τ(m<sub>r</sub>) = ${result.analytical_steps} + ${result.tau_mr} = <strong>${result.total_stopping_time}</strong>, with η=1
                         </div>
                     `;
                 }
+
+            } else if (result.prediction_type === 'entry_point_found') {
+                // CASE 2: Wormhole
+                strategyContent.innerHTML = `
+                    <div class="strategy-item">
+                        <strong>Wormholes algorithm</strong>: the Collatz function is applied iteratively 
+                        until reaching entry point e(m<sub>r</sub>) = <strong>${result.entry_point_found}</strong>, 
+                        taking k = <strong>${result.computed_steps}</strong> computed steps. 
+                        From there, the τ(m<sub>r</sub>) = <strong>${result.tau_mr}</strong> remaining 
+                        steps are obtained from the dictionary. </br>
+                        Finally, σ(${n}) = k + τ(m<sub>r</sub>) = ${result.computed_steps} + ${result.tau_mr} = 
+                        <strong>${result.total_stopping_time}</strong>, with 
+                        η = ${result.tau_mr}/${result.total_stopping_time} ≈ 
+                        ${(result.tau_mr/result.total_stopping_time).toFixed(4)}
+                    </div>
+                `;
+
+            } else {
+                // CASE 3: Standard
+                strategyContent.innerHTML = `
+                    <div class="strategy-item">
+                        <strong>Standard Algorithm:</strong> the Collatz function is applied iteratively until reaching the trivial cycle, 
+                        and no multiplicity or wormhole pattern detected.</br>
+                        Finally, σ(${n}) = <strong>${result.total_stopping_time}</strong>, with η=0
+                    </div>
+                `;
             }
         }
 
