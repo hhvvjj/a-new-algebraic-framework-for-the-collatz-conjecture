@@ -7,14 +7,14 @@
 
 ## What It Does
 
-Interactive enumeration tool that discovers $m_r$-classes by processing consecutive integers. For each $n$:
+Interactive enumeration tool that discovers $m_r$ values by processing consecutive integers. For each $n$:
 
 1. Computes the Collatz sequence and tuple transform
 2. Identifies the first repeated $m$-value ($m_r$)
 3. Records only new $m_r$ values (ignores duplicates)
 4. Visualizes the discovery process in real-time
 
-Browser-based tool designed for interactive and conceptual exploration. All 42 classes will appear before $n = 7287$ ($n < 2^{13}$). For large-scale enumeration, use [mr-pairs-finder](https://github.com/hhvvjj/mr-pairs-finder).
+Browser-based tool designed for interactive and conceptual exploration. All 42 known $m_r$ values will appear before $n = 7287$ ($n < 2^{13}$). For large-scale enumeration, use [mr-pairs-finder](https://github.com/hhvvjj/mr-pairs-finder).
 
 ## Live Demo
 
@@ -23,19 +23,22 @@ Browser-based tool designed for interactive and conceptual exploration. All 42 c
 ## How to Use
 
 ### Input Parameters
+
 - **n**: Starting positive integer (required)
   - Start small (100-1000) to watch how new $m_r$ discoveries slow down rapidly
   - Use 8192 ($2^{13}$) to find all 42 known classes
 
-### What You Get
+## What You Get
 
-**Real-Time Discovery Panel**:
+### Real-Time Discovery Panel
+
 - Current $n$ being processed
 - Current $m_r$ value
 - Total unique $m_r$ classes found
 - Progress bar
 
-**Visual Grid**:
+### Visual Grid
+
 - Card for each discovered $m_r$ class
 - **Hover**: See first $n$ where this $m_r$ appeared
 - **Animation**: Cards flash when first discovered
