@@ -1101,6 +1101,7 @@
                 
                 // Add interactive tooltips
                 cell.addEventListener('mouseenter', (e) => showTooltip(e, n, i, m, mr, mstar, Mstar, mrPositions, mSequence));
+                cell.addEventListener('mouseleave', hideTooltip);
                 
                 bar.appendChild(cell);
             }
