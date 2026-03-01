@@ -1593,7 +1593,7 @@
                         <div class="equation-line"><strong>Rule:</strong> p = parity, m from both paths must match</div>
                         <div class="equation-line">p = ${p}, f(p) = ${fp}, q = ${q}</div>
                         <div class="equation-line"><strong>Path 1 (from c${tupleIndex + 1}):</strong> m = (${ci} - ${p}) ÷ (2 × ${q}) = ${mFromCi}</div>
-                        <div class="equation-line"><strong>Path 2 (from c${tupleIndex + 2}):</strong> m = (${ciPlus1} - ${fp}) ÷ ${p === 2 ? q : `(6 × ${q})`} = ${mFromCiPlus1}</div>
+                        <div class="equation-line"><strong>Path 2 (from c${tupleIndex + 2}):</strong> m = (${ciPlus1} - ${fp}) ÷ ${p === 2 ? `${q}` : `(6 × ${q})`} = ${mFromCiPlus1}</div>
                         <div class="equation-line"><strong>Computed:</strong> [${p}, ${fp}, ${m}, ${q}]</div>
                         <div class="equation-line"><strong>Actual:</strong> τ${tupleIndex + 1} = [${tau.p}, ${tau.fp}, ${tau.m}, ${tau.q}]</div>
                         <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
@@ -1919,6 +1919,12 @@
              * Visual proof: Uses dashed lines to distinguish from φ arrows (solid lines).
              * Together with drawVerticalPhiArrows, this demonstrates the bidirectional
              * nature of the isomorphism and how pseudocycle removal breaks both directions.
+             * 
+             * Note on pruned state: When elements are hidden, the reconstruction formulas
+             * are intentionally applied to the nearest visible Collatz blocks (not the
+             * correct ones). This mismatch is what produces the red error arrows, visually
+             * proving that φ⁻¹ fails without the pseudocycle. The tooltip explicitly flags
+             * which blocks are wrong and why the reconstruction fails.
              */
             drawVerticalPhiInverseArrows() {
                 const tupleItems = this.vizData.getTupleItems();
