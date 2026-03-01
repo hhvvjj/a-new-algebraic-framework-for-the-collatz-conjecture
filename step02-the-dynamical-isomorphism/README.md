@@ -21,31 +21,38 @@ Interactive visualization demonstrating that the tuple-based transform $\phi_1$ 
 ### Input Parameters
 - **$n$**: Starting positive integer (required)
 
-### What You Get
+## What You Get
 
-**Dual-Track Visualization**:
+### Dual-Track Visualization
+
 - **Top row**: Collatz sequence ($c_1, c_2, \ldots$)
 - **Bottom row**: Tuple sequence ($\tau_1, \tau_2, \ldots$)
 
-**Arrow System**:
-- **Horizontal green arrows**: 
+### Arrow System
+
+- **Horizontal green arrows**:
+
   - $f$ transitions (Collatz space)
   - $f_T$ transitions (tuple space)
+
 - **Vertical arrows**:
+
   - Solid green ($\phi$): Collatz → Tuple
   - Dashed green ($\phi^{-1}$): Tuple → Collatz
 
-**Interactive Features**:
+### Interactive Features
+
 - **Hover arrows**: See validation equations
 - **Click ✂️ on cyan blocks**: Prune/unprune the first pseudocycle
   - **Red arrows appear**: Show where commutativity breaks ($\phi \circ f \neq f_T \circ \phi$)
   - **Demonstrates**: Pseudocycles are structurally necessary for the isomorphism
 - **Export**: Save diagram as PNG
 
-**Color Coding**:
+### Color Coding
+
 - **Blue**: Standard Collatz elements
 - **Purple**: Standard tuples
-- **Orange**: Cycle $(2, 1, 4)$ where $m=0$
+- **Orange**: Cycle $(4, 2, 1)$ where $m=0$
 - **Cyan + ✂️**: First pseudocycle (repeated $m$-value)
 - **Red arrows**: Invalid transitions (appear after pruning)
 
