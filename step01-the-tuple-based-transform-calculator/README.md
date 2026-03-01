@@ -21,20 +21,26 @@ Interactive calculator that transforms Collatz sequences into tuple representati
 ## How to Use
 
 ### Input Parameters
+
 - **$n$**: Starting positive integer (required)
 - **$q$**: Odd transformation parameter (optional, default = 1)
 
-### What You Get
+## What You Get
 
-**Collatz Sequence**: Full trajectory from $n$ to 1
+### Collatz Sequence
 
-**Transformation Details**: For each pair:
-- All candidate $p$ values tested
+- Full trajectory from $n$ to 1
+
+### Transformation Details
+
+For each pair:
+- p computed directly via CRT (O(1))
 - Validation checks (congruence + integrality)
 - Selected tuple $[p, f(p), m, q]$
 - Reconstruction verification
 
-**Parameter Sequences**:
+### Parameter Sequences
+
 - $\{p_i\}$: residue sequence
 - $\{m_i\}$: scale parameter sequence
 
