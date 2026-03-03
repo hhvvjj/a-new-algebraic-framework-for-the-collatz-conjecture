@@ -215,7 +215,7 @@ This framework proves universal convergence to $(4, 2, 1)$ by transforming an it
 
 **Author**: Javier Hernández (Independent Researcher, Spain)
 
-**Abstract**: We present a novel algebraic framework for analyzing the Collatz conjecture based on the $\emph{tuple-based transform}$ $\phi_1$, a bijection between Collatz sequences and sequences of algebraic tuples. This transform decomposes each Collatz value as $c_i = 2m_i + p_i$, isolating a bounded parity component $p_i \in \{1, 2\}$ from a parameter $m_i$ that encodes the dynamics of the sequence. The resulting parameter space constitutes a dynamical isomorphism, preserving cycles and convergence properties while exposing the algebraic structure 
+**Abstract**: We present a novel algebraic framework for analyzing the Collatz conjecture based on the tuple-based transform $\phi_1$, a bijection between Collatz sequences and sequences of algebraic tuples. This transform decomposes each Collatz value as $c_i = 2m_i + p_i$, isolating a bounded parity component $p_i \in \{1, 2\}$ from a parameter $m_i$ that encodes the dynamics of the sequence. The resulting parameter space constitutes a dynamical isomorphism, preserving cycles and convergence properties while exposing the algebraic structure 
 underlying sequence evolution.
 
 Within this framework, we prove that consecutive equal values of the parameter $m$ occur only when $m = 0$, establishing $(4, 2, 1)$ as the unique cycle. More fundamentally, we show that parameter repetitions are structurally necessary for the dynamical isomorphism to exist, implying that every Collatz sequence must contain at least one repeated parameter value, and each such repetition defines a wormhole, an invariant trajectory structure that terminates at $m = 0$.
