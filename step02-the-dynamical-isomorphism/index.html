@@ -31,10 +31,10 @@
  * 3. Vertical φ⁻¹ arrows: Map tuples → Collatz pairs (inverse)
  * 4. Interactive pruning: Click scissors (✂️) to remove pseudocycles
  * 5. Error detection: Red arrows show broken mappings when pruned
- * 6 Green arrows: Valid transformations preserving isomorphism
- * 7 Red arrows: Invalid transformations (occur when pseudocycles removed)
- * 8 Cyan blocks: Repeated m-values (pseudocycles)
- * 9 Orange blocks: Trivial cycle {4, 2, 1} where m=0
+ * 6. Green arrows: Valid transformations preserving isomorphism
+ * 7. Red arrows: Invalid transformations (occur when pseudocycles removed)
+ * 8. Cyan blocks: Repeated m-values (pseudocycles)
+ * 9. Orange blocks: Trivial cycle {4, 2, 1} where m=0
  * 
  * INTERACTIVE DEMONSTRATION:
  * 1. Enter positive integer n
@@ -115,11 +115,7 @@
             text-shadow: 0 2px 15px rgba(255, 255, 255, 0.2);
         }
 
-        .subtitle {
-            display: none;
-        }
-
-         .input-section {
+        .input-section {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -154,7 +150,6 @@
             cursor: pointer;
             font-weight: 600;
             box-shadow: none;
-            transition: none;
             width: 120px;
             transition: background-color 0.3s;
         }
@@ -446,9 +441,9 @@
         <h1>The Dynamical Isomorphism</h1>
         
         <div class="input-section">
-            <input type="number" id="inputN" min="1" placeholder="Enter n > 0" value="">
+            <input type="number" id="inputN" min="1" step="1" placeholder="Enter n > 0" value="">
             <button onclick="controller.process()" class="process">Process</button>
-            <button onclick="controller.showExport()" id="exportBtn" disabled>Export</button>
+            <button onclick="controller.showExport(event)" id="exportBtn" disabled>Export</button>
         </div>
 
     </div>
@@ -468,7 +463,6 @@
          * 
          * @constant {Object} CONFIG
          * @property {number} MAX_STEPS - Safety limit to prevent infinite loops (10,000 iterations)
-         * @property {Set<number>} CYCLE_VALUES - Set {2, 1, 4} representing the unique trivial cycle (Theorem 4.1)
          * @property {number} ARROW_HEAD_SIZE - Arrow head size in pixels (14px)
          * @property {number} ARROW_THICKNESS - Arrow line thickness in pixels (4px)
          * @property {Object} COLORS - Color palette for transformations
@@ -481,7 +475,6 @@
          */
         const CONFIG = {
             MAX_STEPS: 10000,
-            CYCLE_VALUES: new Set([2, 1, 4]),
             ARROW_HEAD_SIZE: 14,
             ARROW_THICKNESS: 4,
             COLORS: {
@@ -528,13 +521,11 @@
              * @param {number} n - Starting positive integer
              * @returns {Array<number>} Complete Collatz sequence including at least two 1's
              * 
-             * @throws {Error} If maximum steps (CONFIG.MAX_STEPS) reached without convergence
-             * 
              * @description
              * The function ensures:
              * 1. Standard Collatz sequence generation (n/2 if even, 3n+1 if odd)
-             * 2. Detection of reaching 1 (entrance to trivial cycle)
-             * 3. Continuation through cycle at least twice to capture cycle structure
+             * 2. Counting occurrences of 1 (entrance and re-entrance to trivial cycle)
+             * 3. Stopping after the second occurrence of 1 to capture cycle structure
              * 4. This guarantees proper tuple decomposition and m=0 detection
              * 
              * Safety limit: Maximum 10,000 steps to prevent infinite loops.
@@ -542,13 +533,12 @@
              * @example
              * CollatzMath.generateSequence(5)
              * // returns [5, 16, 8, 4, 2, 1, 4, 2, 1]
-             * // Continues past first 1 to capture complete cycle
+             * // Stops after the second 1 to capture the complete cycle
              */        
             static generateSequence(n) {
                 const sequence = [n];
                 let current = n;
                 let steps = 0;
-                let reachedOne = false;
                 let cycleCount = 0;
 
                 while (steps < CONFIG.MAX_STEPS) {
@@ -557,18 +547,11 @@
                     steps++;
 
                     if (current === 1) {
-                        if (!reachedOne) {
-                            reachedOne = true;
-                        }
                         cycleCount++;
                     }
-                    
-                    if (reachedOne && cycleCount >= 2) {
-                        break;
-                    }
 
-                    if (steps >= CONFIG.MAX_STEPS) {
-                        throw new Error('Maximum steps reached');
+                    if (cycleCount >= 2) {
+                        break;
                     }
                 }
 
@@ -611,7 +594,6 @@
                 
                 for (let i = 0; i < sequence.length - 1; i++) {
                     const ci = sequence[i];
-                    const ciPlus1 = sequence[i + 1];
                     
                     const p = ci % 2 === 0 ? 2 : 1;
                     const fp = p === 2 ? 1 : 4;
@@ -724,7 +706,8 @@
              * - index: Position in the sequence
              * - value: The actual number or tuple object
              * - cycle: Boolean indicating if element is part of the trivial cycle (m=0)
-             * - class: CSS class for styling ('repeated', 'cycle', or empty)
+             * - class (tuples only): CSS class string — 'repeated' if m-value repeats,
+             *   'cycle' if m=0, or '' otherwise
              * 
              * Cycle detection: Elements are marked as cycle if m=0 in any adjacent tuple,
              * corresponding to the unique trivial cycle {4, 2, 1} (Theorem 4.1).
@@ -832,22 +815,9 @@
              */
             pruneDown() {
                 if (!this.repeatedInfo) return;
-                
                 this.pruningState = 'pruned-down';
-                this.hiddenIndices.clear();
-                
-                const start = this.repeatedInfo.firstOccurrenceIndex;
-                const end = this.repeatedInfo.firstRepeatedIndex;
-                
-                // Hide tuples from start+1 to end (inclusive)
-                for (let i = start + 1; i <= end; i++) {
-                    this.hiddenIndices.add(`t-${i}`);
-                }
-                
-                // Hide Collatz values from start+1 to end (inclusive)
-                for (let i = start + 1; i <= end; i++) {
-                    this.hiddenIndices.add(`c-${i}`);
-                }
+                const { firstOccurrenceIndex: start, firstRepeatedIndex: end } = this.repeatedInfo;
+                this._applyPruning(start + 1, end, start + 1, end);
             }
 
             /**
@@ -876,42 +846,37 @@
              */
             pruneUp() {
                 if (!this.repeatedInfo) return;
-                
                 this.pruningState = 'pruned-up';
+                const { firstOccurrenceIndex: start, firstRepeatedIndex: end } = this.repeatedInfo;
+                this._applyPruning(start, end - 1, start + 1, end);
+            }
+
+            /**
+             * Populates hiddenIndices with the tuple and Collatz keys to hide.
+             * 
+             * @private
+             * @param {number} tupleFrom - First tuple index to hide (inclusive)
+             * @param {number} tupleTo - Last tuple index to hide (inclusive)
+             * @param {number} collatzFrom - First Collatz index to hide (inclusive)
+             * @param {number} collatzTo - Last Collatz index to hide (inclusive)
+             * @returns {void}
+             */
+            _applyPruning(tupleFrom, tupleTo, collatzFrom, collatzTo) {
                 this.hiddenIndices.clear();
-                
-                const start = this.repeatedInfo.firstOccurrenceIndex;
-                const end = this.repeatedInfo.firstRepeatedIndex;
-                
-                // Hide tuples from start to end-1 (inclusive)
-                for (let i = start; i < end; i++) {
+                for (let i = tupleFrom; i <= tupleTo; i++) {
                     this.hiddenIndices.add(`t-${i}`);
                 }
-                
-                // Hide Collatz values from start+1 to end (inclusive)
-                for (let i = start + 1; i <= end; i++) {
+                for (let i = collatzFrom; i <= collatzTo; i++) {
                     this.hiddenIndices.add(`c-${i}`);
                 }
             }
 
             /**
-             * Restores all hidden elements after pruneDown.
-             * Returns visualization to unpruned state.
+             * Restores all hidden elements, returning the visualization to unpruned state.
              * 
              * @returns {void}
              */
-            unpruneDown() {
-                this.pruningState = 'none';
-                this.hiddenIndices.clear();
-            }
-
-            /**
-             * Restores all hidden elements after pruneUp.
-             * Returns visualization to unpruned state.
-             * 
-             * @returns {void}
-             */
-            unpruneUp() {
+            unprune() {
                 this.pruningState = 'none';
                 this.hiddenIndices.clear();
             }
@@ -926,45 +891,33 @@
         class DOMRenderer {
 
             /**
-             * Renders visualization elements (Collatz blocks and tuple blocks) into the DOM.
-             * Handles spacing, hidden elements, and visual representation of the isomorphism.
+             * Renders Collatz and tuple rows into the given container.
+             * Accounts for hidden elements (pruned blocks) by collapsing their space
+             * and inserting a single spacer where the gap occurs.
              * 
-             * @class DOMRenderer
+             * @static
+             * @param {Array<Object>} items - Full items array from VisualizationData
+             * @param {HTMLElement} container - DOM container to render into
+             * @param {VisualizationData|null} vizData - Current visualization state for pruning checks
+             * @returns {void}
              */
-            static renderBlocks(items, container) {
+            static renderBlocks(items, container, vizData) {
                 const collatzItems = items.filter(item => item.type === 'collatz');
                 const tupleItems = items.filter(item => item.type === 'tuple');
                 
                 let collatzHTML = '<div class="sequence-row" id="collatz-row">';
-                let inHiddenRegion = false;
                 
                 collatzItems.forEach((item, idx) => {
-                    const isHidden = controller.vizData && controller.vizData.isCollatzHidden(item.index);
+                    const isHidden = vizData && vizData.isCollatzHidden(item.index);
                     
-                    collatzHTML += this._renderCollatzBlock(item);
+                    collatzHTML += this._renderCollatzBlock(item, vizData);
                     
                     if (idx < collatzItems.length - 1) {
                         const nextItem = collatzItems[idx + 1];
-                        const nextHidden = controller.vizData && controller.vizData.isCollatzHidden(nextItem.index);
-                        
-                        if (isHidden && !nextHidden) {
-                            let hiddenCount = 0;
-                            for (let j = item.index; j < nextItem.index; j++) {
-                                if (controller.vizData && controller.vizData.isCollatzHidden(j)) {
-                                    hiddenCount++;
-                                }
-                            }
-                            
-                            const totalWidth = `var(--block-spacing)`;
-                            collatzHTML += `<div class="collatz-spacer" style="width: ${totalWidth};"></div>`;
-                            inHiddenRegion = false;
-                        }
-                        else if (!isHidden && !nextHidden) {
+                        const nextHidden = vizData && vizData.isCollatzHidden(nextItem.index);
+                        // Insert spacer whenever at least one of the two neighbours is visible
+                        if (!isHidden || !nextHidden) {
                             collatzHTML += '<div class="collatz-spacer" style="width: var(--block-spacing);"></div>';
-                        }
-                        else if (!isHidden && nextHidden) {
-                            collatzHTML += '<div class="collatz-spacer" style="width: var(--block-spacing);"></div>';
-                            inHiddenRegion = true;
                         }
                     }
                 });
@@ -975,32 +928,15 @@
                 tupleHTML += '<div class="spacer" style="width: calc(var(--block-width) / 2 + var(--block-spacing) / 2); flex-shrink: 0;"></div>';
                 
                 tupleItems.forEach((item, idx) => {
-                    const isHidden = controller.vizData && controller.vizData.isTupleHidden(item.index);
+                    const isHidden = vizData && vizData.isTupleHidden(item.index);
                     
-                    tupleHTML += this._renderTupleBlock(item);
+                    tupleHTML += this._renderTupleBlock(item, vizData);
                     
                     if (idx < tupleItems.length - 1) {
                         const nextItem = tupleItems[idx + 1];
-                        const nextHidden = controller.vizData && controller.vizData.isTupleHidden(nextItem.index);
-                        
-                        if (isHidden && !nextHidden) {
-                            let hiddenCount = 0;
-                            for (let j = item.index; j < nextItem.index; j++) {
-                                if (controller.vizData && controller.vizData.isTupleHidden(j)) {
-                                    hiddenCount++;
-                                }
-                            }
-                            
-                            const totalWidth = `var(--block-spacing)`;
-                            tupleHTML += `<div class="spacer" style="width: ${totalWidth}; flex-shrink: 0;"></div>`;
-                        }
-                        else if (!isHidden && !nextHidden) {
-                            tupleHTML += '<div class="spacer" style="width: var(--block-spacing); flex-shrink: 0;"></div>';
-                        }
-                        else if (isHidden && nextHidden) {
-                            // No spacer - hidden blocks completely collapse
-                        }
-                        else if (!isHidden && nextHidden) {
+                        const nextHidden = vizData && vizData.isTupleHidden(nextItem.index);
+                        // Insert spacer unless both neighbours are hidden (they fully collapse)
+                        if (!isHidden || !nextHidden) {
                             tupleHTML += '<div class="spacer" style="width: var(--block-spacing); flex-shrink: 0;"></div>';
                         }
                     }
@@ -1016,6 +952,7 @@
              * @private
              * @static
              * @param {Object} item - Collatz item object {type, index, value, cycle}
+             * @param {VisualizationData|null} vizData - Current visualization state for hidden/cycle checks
              * @returns {string} HTML string for the Collatz block
              * 
              * @description
@@ -1025,9 +962,9 @@
              * - Cycle class: Orange gradient if m=0 (trivial cycle)
              * - Hidden class: Invisible if pruned
              */
-            static _renderCollatzBlock(item) {
+            static _renderCollatzBlock(item, vizData) {
                 const cycleClass = item.cycle ? 'cycle' : '';
-                const hiddenClass = controller.vizData && controller.vizData.isCollatzHidden(item.index) ? 'hidden' : '';
+                const hiddenClass = vizData && vizData.isCollatzHidden(item.index) ? 'hidden' : '';
                 return `
                     <div class="collatz-block block ${cycleClass} ${hiddenClass}" 
                          data-index="${item.index}" 
@@ -1044,6 +981,7 @@
              * @private
              * @static
              * @param {Object} item - Tuple item object {type, index, value, cycle, class}
+             * @param {VisualizationData|null} vizData - Current visualization state for pruning and active-state checks
              * @returns {string} HTML string for the tuple block
              * 
              * @description
@@ -1059,14 +997,14 @@
              * - Click second occurrence: activates pruneUp mode
              * - Visual feedback shows which pruning is active
              */
-            static _renderTupleBlock(item) {
+            static _renderTupleBlock(item, vizData) {
                 const isFirstOccurrence = item.class === 'repeated' && 
-                    controller.vizData && 
-                    item.index === controller.vizData.repeatedInfo.firstOccurrenceIndex;
+                    vizData && 
+                    item.index === vizData.repeatedInfo.firstOccurrenceIndex;
                     
                 const isSecondOccurrence = item.class === 'repeated' && 
-                    controller.vizData && 
-                    item.index === controller.vizData.repeatedInfo.firstRepeatedIndex;
+                    vizData && 
+                    item.index === vizData.repeatedInfo.firstRepeatedIndex;
                 
                 let clickableClass = '';
                 let iconHTML = '';
@@ -1075,7 +1013,7 @@
                 
                 if (isFirstOccurrence || isSecondOccurrence) {
                     clickableClass = 'mr-clickable';
-                    const pruningState = controller.vizData ? controller.vizData.pruningState : 'none';
+                    const pruningState = vizData ? vizData.pruningState : 'none';
                     
                     if (isFirstOccurrence) {
                         iconHTML = '<span class="mr-icon">✂️</span>';
@@ -1092,7 +1030,7 @@
                     }
                 }
                 
-                const hiddenClass = controller.vizData && controller.vizData.isTupleHidden(item.index) ? 'hidden' : '';
+                const hiddenClass = vizData && vizData.isTupleHidden(item.index) ? 'hidden' : '';
                 
                 return `
                     <div class="tuple-block block ${item.class} ${clickableClass} ${activeClass} ${hiddenClass}" 
@@ -1145,27 +1083,16 @@
             }
 
             /**
-             * Calculates element coordinates relative to the scrollable container.
-             * Accounts for scroll position and container offset.
+             * Returns cached coordinates for an element.
+             * Coordinates are pre-computed by _batchCoords() at the start of drawAll()
+             * to avoid per-call layout reflows.
              * 
              * @private
-             * @param {HTMLElement} element - DOM element to measure
+             * @param {HTMLElement} element - DOM element to look up
              * @returns {Object} Coordinate object with left, right, top, bottom, width, height, centerX, centerY
              */
             _getCoords(element) {
-                const rect = element.getBoundingClientRect();
-                const containerRect = this.container.getBoundingClientRect();
-                
-                return {
-                    left: rect.left - containerRect.left + this.container.scrollLeft,
-                    right: rect.right - containerRect.left + this.container.scrollLeft,
-                    top: rect.top - containerRect.top + this.container.scrollTop,
-                    bottom: rect.bottom - containerRect.top + this.container.scrollTop,
-                    width: rect.width,
-                    height: rect.height,
-                    centerX: rect.left + rect.width / 2 - containerRect.left + this.container.scrollLeft,
-                    centerY: rect.top + rect.height / 2 - containerRect.top + this.container.scrollTop
-                };
+                return this._coordCache.get(element.id);
             }
 
             /**
@@ -1185,16 +1112,69 @@
              * - Red: Invalid transformation (occurs when pseudocycles are removed)
              */
             drawAll() {
-                const existingArrows = this.container.querySelectorAll('.arrow, .arrow-label');
-                existingArrows.forEach(el => el.remove());
-                
-                const existingSVGs = this.container.querySelectorAll('svg');
-                existingSVGs.forEach(el => el.remove());
+                // Clear all arrows at once via a dedicated layer instead of individual removes
+                let layer = this.container.querySelector('#arrows-layer');
+                if (!layer) {
+                    layer = document.createElement('div');
+                    layer.id = 'arrows-layer';
+                    layer.style.position = 'absolute';
+                    layer.style.top = '0';
+                    layer.style.left = '0';
+                    layer.style.width = '100%';
+                    layer.style.height = '100%';
+                    layer.style.pointerEvents = 'none';
+                    this.container.appendChild(layer);
+                }
+                layer.innerHTML = '';
+                this._layer = layer;
+                this._batchCoords();
                 
                 this.drawHorizontalCollatzArrows();
                 this.drawHorizontalTupleArrows();
                 this.drawVerticalPhiArrows();
                 this.drawVerticalPhiInverseArrows();
+            }
+
+            /**
+             * Appends an element to the arrows layer.
+             * Arrow-label elements need pointer-events, so they override the layer's none.
+             * 
+             * @private
+             * @param {HTMLElement} el - Element to add
+             * @returns {void}
+             */
+            _addToLayer(el) {
+                if (el.classList.contains('arrow-label')) {
+                    el.style.pointerEvents = 'auto';
+                }
+                this._layer.appendChild(el);
+            }
+
+            /**
+             * Reads and caches all block coordinates in a single layout pass.
+             * Prevents repeated getBoundingClientRect calls (each of which forces a reflow)
+             * during the drawing phase.
+             * 
+             * @private
+             * @returns {void}
+             */
+            _batchCoords() {
+                this._coordCache = new Map();
+                const containerRect = this.container.getBoundingClientRect();
+                const blocks = this.container.querySelectorAll('.block');
+                blocks.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    this._coordCache.set(el.id, {
+                        left:    rect.left   - containerRect.left + this.container.scrollLeft,
+                        right:   rect.right  - containerRect.left + this.container.scrollLeft,
+                        top:     rect.top    - containerRect.top  + this.container.scrollTop,
+                        bottom:  rect.bottom - containerRect.top  + this.container.scrollTop,
+                        width:   rect.width,
+                        height:  rect.height,
+                        centerX: rect.left + rect.width  / 2 - containerRect.left + this.container.scrollLeft,
+                        centerY: rect.top  + rect.height / 2 - containerRect.top  + this.container.scrollTop
+                    });
+                });
             }
 
             /**
@@ -1266,10 +1246,8 @@
                         arrowColor,
                         'ƒ',
                         isValid,
-                        `c${current.index + 1} → c${next.index + 1}`,
                         0,
-                        equationHTML,
-                        false
+                        equationHTML
                     );
                 }
                 
@@ -1303,7 +1281,6 @@
                             const ci = current.value;
                             const ciJump = nextVisible.value;
                             const expectedNext = CollatzMath.f(ci);
-                            const arrowColor = CONFIG.COLORS.F_ARROW_ERROR;
                             
                             const isOdd = ci % 2 !== 0;
                             const formula = isOdd ? `3 × ${ci} + 1` : `${ci} ÷ 2`;
@@ -1324,13 +1301,11 @@
                                 currentCoords.centerY,
                                 nextCoords.left,
                                 nextCoords.centerY,
-                                arrowColor,
+                                CONFIG.COLORS.F_ARROW_ERROR,
                                 'ƒ',
                                 false,
-                                `c${current.index + 1} → c${nextVisible.index + 1}`,
                                 0,
-                                equationHTML,
-                                false
+                                equationHTML
                             );
                         }
                     }
@@ -1378,7 +1353,6 @@
                     const currentCoords = this._getCoords(currentEl);
                     const nextCoords = this._getCoords(nextEl);
                     
-                    const arrowColor = CONFIG.COLORS.F_ARROW;
                     const tau = current.value;
                     const nextTau = next.value;
                     
@@ -1430,13 +1404,11 @@
                         currentCoords.centerY,
                         nextCoords.left,
                         nextCoords.centerY,
-                        isValid ? arrowColor : CONFIG.COLORS.F_ARROW_ERROR,
+                        isValid ? CONFIG.COLORS.F_ARROW : CONFIG.COLORS.F_ARROW_ERROR,
                         'ƒ<sub>T</sub>',
                         isValid,
-                        `τ${current.index + 1} → τ${next.index + 1}`,
                         0,
-                        equationHTML,
-                        false
+                        equationHTML
                     );
                 }
                 
@@ -1511,10 +1483,8 @@
                                 CONFIG.COLORS.F_ARROW_ERROR,
                                 'ƒ<sub>T</sub>',
                                 false,
-                                `τ${current.index + 1} → τ${nextVisible.index + 1}`,
                                 0,
-                                equationHTML,
-                                false
+                                equationHTML
                             );
                         }
                     }
@@ -1551,7 +1521,6 @@
              */
             drawVerticalPhiArrows() {
                 const tupleItems = this.vizData.getTupleItems();
-                const maxIndex = this.vizData.sequence.length - 1;
                 
                 tupleItems.forEach(tupleItem => {
                     const tupleIndex = tupleItem.index;
@@ -1599,10 +1568,6 @@
                         <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
                     `;
                     
-                    const extraOffset = 0;
-                    const isFirst = (tupleIndex === 0);
-                    const isLast = (tupleIndex + 1 === maxIndex);
-                    
                     this._drawUShapePhiArrow(
                         c1Coords.centerX,
                         c1Coords.bottom,
@@ -1611,16 +1576,13 @@
                         tupleCoords.centerX,
                         tupleCoords.top,
                         color,
-                        extraOffset,
+                        0,
                         isValid,
-                        isFirst,
-                        isLast,
                         equationHTML
                     );
                 });
                 
                 if (this.vizData.pruningState !== 'none') {
-                    const collatzItems = this.vizData.getCollatzItems();
                     
                     tupleItems.forEach(tupleItem => {
                         const tupleIndex = tupleItem.index;
@@ -1742,8 +1704,6 @@
                                     CONFIG.COLORS.PHI_ARROW_ERROR,
                                     orphanOffset,
                                     false,
-                                    false,
-                                    false,
                                     equationHTML
                                 );
                             }
@@ -1753,8 +1713,8 @@
             }
 
             /**
-             * Draws U-shaped φ arrow connecting two Collatz blocks to one tuple block.
-             * Uses solid lines for valid mappings, adjusts offsets for first/last positions.
+             * Draws a U-shaped φ arrow connecting two Collatz blocks down to one tuple block.
+             * Uses solid lines for valid mappings.
              * 
              * @private
              * @param {number} x1 - X coordinate of first Collatz block center
@@ -1766,47 +1726,29 @@
              * @param {string} color - Arrow color (green for valid, red for error)
              * @param {number} extraOffset - Additional horizontal offset for orphaned arrows
              * @param {boolean} isValid - Whether the mapping is valid
-             * @param {boolean} isFirst - Whether this is the first tuple in sequence
-             * @param {boolean} isLast - Whether this is the last tuple in sequence
              * @param {string} equationHTML - HTML content for tooltip with validation details
              * @returns {void}
              * 
              * @description
-             * Creates a U-shaped arrow with three segments:
-             * 1. Left vertical line from first Collatz block downward
-             * 2. Horizontal line connecting both descent points
-             * 3. Right vertical line from second Collatz block downward
-             * 4. Center vertical line with arrowhead pointing to tuple
+             * Creates a U-shaped arrow with four segments:
+             * 1. Left vertical line descending from first Collatz block (20% of gap)
+             * 2. Right vertical line descending from second Collatz block (20% of gap)
+             * 3. Horizontal line connecting both descent points and the tuple center
+             * 4. Center vertical line with downward arrowhead pointing to the tuple
              * 
-             * Offsets are adjusted to avoid overlapping with horizontal ƒ arrows:
-             * - First tuple: Left offset adjusted to avoid overlap with initial spacing
-             * - Last tuple: Right offset adjusted to avoid overlap with final spacing
-             * - Middle tuples: Standard offsets
+             * Fixed horizontal offsets applied to avoid overlap with ƒ arrows:
+             * - Left Collatz foot: +25px from block center
+             * - Right Collatz foot: -25px from block center
+             * - Tuple stem: -25px from tuple center (plus extraOffset)
              * 
-             * The φ label is positioned to the left of the tuple block with
-             * interactive tooltip showing the validation equations.
+             * The φ label is positioned to the left of the tuple block.
              */
-            _drawUShapePhiArrow(x1, y1, x2, y2, xCenter, yBottom, color, extraOffset = 0, isValid = true, isFirst = false, isLast = false, equationHTML = '') {
+            _drawUShapePhiArrow(x1, y1, x2, y2, xCenter, yBottom, color, extraOffset = 0, isValid = true, equationHTML = '') {
                 const tupleOffset = -25 - extraOffset;
                 const adjustedXCenter = xCenter + tupleOffset;
                 
-                let c1Offset = 0;
-                let c2Offset = 0;
-                
-                if (isFirst) {
-                    c1Offset = 25;
-                } else {
-                    c1Offset = 25;
-                }
-                
-                if (isLast) {
-                    c2Offset = -25;
-                } else {
-                    c2Offset = -25;
-                }
-                
-                const adjustedX1 = x1 + c1Offset;
-                const adjustedX2 = x2 + c2Offset;
+                const adjustedX1 = x1 + 25;
+                const adjustedX2 = x2 - 25;
                 
                 const leftLine = document.createElement('div');
                 leftLine.className = 'arrow';
@@ -1817,7 +1759,7 @@
                 leftLine.style.height = ((yBottom - y1) * 0.2) + 'px';
                 leftLine.style.background = color;
                 leftLine.style.zIndex = '5';
-                this.container.appendChild(leftLine);
+                this._addToLayer(leftLine);
                 
                 const rightLine = document.createElement('div');
                 rightLine.className = 'arrow';
@@ -1828,7 +1770,7 @@
                 rightLine.style.height = ((yBottom - y2) * 0.2) + 'px';
                 rightLine.style.background = color;
                 rightLine.style.zIndex = '5';
-                this.container.appendChild(rightLine);
+                this._addToLayer(rightLine);
                 
                 const midY = y1 + (yBottom - y1) * 0.2;
                 const minX = Math.min(adjustedX1, adjustedX2, adjustedXCenter);
@@ -1842,7 +1784,7 @@
                 horizontalLine.style.height = CONFIG.ARROW_THICKNESS + 'px';
                 horizontalLine.style.background = color;
                 horizontalLine.style.zIndex = '5';
-                this.container.appendChild(horizontalLine);
+                this._addToLayer(horizontalLine);
                 
                 const centerLine = document.createElement('div');
                 centerLine.className = 'arrow';
@@ -1866,7 +1808,7 @@
                 head.style.borderRight = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
                 centerLine.appendChild(head);
                 
-                this.container.appendChild(centerLine);
+                this._addToLayer(centerLine);
                 
                 const labelEl = document.createElement('div');
                 labelEl.className = 'arrow-label';
@@ -1886,7 +1828,7 @@
                     TooltipManager.hide();
                 });
                 
-                this.container.appendChild(labelEl);
+                this._addToLayer(labelEl);
             }
 
             /**
@@ -1928,7 +1870,6 @@
              */
             drawVerticalPhiInverseArrows() {
                 const tupleItems = this.vizData.getTupleItems();
-                const maxIndex = this.vizData.sequence.length - 1;
                 
                 tupleItems.forEach(tupleItem => {
                     const tupleIndex = tupleItem.index;
@@ -1982,10 +1923,6 @@
                         <div class="equation-line"><strong>${isValid ? 'Valid' : 'Invalid'}</strong></div>
                     `;
                     
-                    const extraOffset = 0;
-                    const isFirst = (tupleIndex === 0);
-                    const isLast = (tupleIndex + 1 === maxIndex);
-                    
                     this._drawInvertedUShapePhiInverseArrow(
                         tupleCoords.centerX,
                         tupleCoords.top,
@@ -1994,10 +1931,8 @@
                         c2Coords.centerX,
                         c2Coords.bottom,
                         color,
-                        extraOffset,
+                        0,
                         isValid,
-                        isFirst,
-                        isLast,
                         equationHTML
                     );
                 });
@@ -2120,8 +2055,6 @@
                                     CONFIG.COLORS.PHI_INV_ARROW_ERROR,
                                     orphanOffset,
                                     false,
-                                    false,
-                                    false,
                                     equationHTML
                                 );
                             }
@@ -2131,8 +2064,8 @@
             }
 
             /**
-             * Draws inverted U-shaped φ⁻¹ arrow connecting one tuple block to two Collatz blocks.
-             * Uses dashed lines to distinguish from φ arrows, validates reconstruction.
+             * Draws an inverted U-shaped φ⁻¹ arrow from one tuple block up to two Collatz blocks.
+             * Uses dashed SVG lines to distinguish from solid φ arrows.
              * 
              * @private
              * @param {number} xCenter - X coordinate of tuple block center
@@ -2144,45 +2077,29 @@
              * @param {string} color - Arrow color (green for valid, red for error)
              * @param {number} extraOffset - Additional horizontal offset for orphaned arrows
              * @param {boolean} isValid - Whether the reconstruction is valid
-             * @param {boolean} isFirst - Whether this is the first tuple in sequence
-             * @param {boolean} isLast - Whether this is the last tuple in sequence
              * @param {string} equationHTML - HTML content for tooltip with reconstruction details
              * @returns {void}
              * 
              * @description
-             * Creates an inverted U-shaped arrow with dashed lines:
-             * 1. Center vertical line rising from tuple block
-             * 2. Horizontal line spanning both target Collatz blocks
-             * 3. Left vertical line descending to first Collatz block (with arrowhead)
-             * 4. Right vertical line descending to second Collatz block (with arrowhead)
+             * Creates an inverted U-shaped arrow with dashed SVG paths:
+             * 1. Center vertical line rising from tuple block top (60% of gap)
+             * 2. Horizontal line spanning both target Collatz block positions
+             * 3. Left vertical line descending to first Collatz block bottom (with arrowhead)
+             * 4. Right vertical line descending to second Collatz block bottom (with arrowhead)
              * 
-             * Dashed lines visually distinguish φ⁻¹ (inverse) from φ (forward) arrows.
-             * Uses SVG paths for dashed rendering, HTML elements for arrowheads.
+             * Fixed horizontal offsets to avoid overlap with ƒ and φ arrows:
+             * - Left Collatz target: +55px from block center
+             * - Right Collatz target: -55px from block center
+             * - Tuple stem: +25px from tuple center (plus extraOffset)
              * 
-             * The φ⁻¹ label is positioned to the right of the tuple block with
-             * interactive tooltip showing the reconstruction equations.
+             * The φ⁻¹ label is positioned to the right of the tuple block.
              */
-            _drawInvertedUShapePhiInverseArrow(xCenter, yTop, x1, y1, x2, y2, color, extraOffset = 0, isValid = true, isFirst = false, isLast = false, equationHTML = '') {
+            _drawInvertedUShapePhiInverseArrow(xCenter, yTop, x1, y1, x2, y2, color, extraOffset = 0, isValid = true, equationHTML = '') {
                 const tupleOffset = 25 + extraOffset;
                 const adjustedXCenter = xCenter + tupleOffset;
                 
-                let c1Offset = 0;
-                let c2Offset = 0;
-                
-                if (isFirst) {
-                    c1Offset = 55;
-                } else {
-                    c1Offset = 55;
-                }
-                
-                if (isLast) {
-                    c2Offset = -55;
-                } else {
-                    c2Offset = -55;
-                }
-                
-                const adjustedX1 = x1 + c1Offset;
-                const adjustedX2 = x2 + c2Offset;
+                const adjustedX1 = x1 + 55;
+                const adjustedX2 = x2 - 55;
                 
                 const midY = yTop + (y1 - yTop) * 0.6;
                 
@@ -2230,7 +2147,7 @@
                 rightPath.setAttribute('fill', 'none');
                 svg.appendChild(rightPath);
                 
-                this.container.appendChild(svg);
+                this._addToLayer(svg);
                 
                 const leftHead = document.createElement('div');
                 leftHead.className = 'arrow';
@@ -2243,7 +2160,7 @@
                 leftHead.style.borderLeft = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
                 leftHead.style.borderRight = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
                 leftHead.style.zIndex = '6';
-                this.container.appendChild(leftHead);
+                this._addToLayer(leftHead);
                 
                 const rightHead = document.createElement('div');
                 rightHead.className = 'arrow';
@@ -2256,7 +2173,7 @@
                 rightHead.style.borderLeft = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
                 rightHead.style.borderRight = `${CONFIG.ARROW_HEAD_SIZE / 2}px solid transparent`;
                 rightHead.style.zIndex = '6';
-                this.container.appendChild(rightHead);
+                this._addToLayer(rightHead);
                 
                 const labelEl = document.createElement('div');
                 labelEl.className = 'arrow-label';
@@ -2277,12 +2194,12 @@
                     TooltipManager.hide();
                 });
                 
-                this.container.appendChild(labelEl);
+                this._addToLayer(labelEl);
             }
 
             /**
-             * Draws a horizontal arrow with label and tooltip.
-             * Used for ƒ and ƒT transformations with validation feedback.
+             * Draws a horizontal arrow with centered label and hover tooltip.
+             * Used for both ƒ (Collatz) and ƒT (tuple) transformation arrows.
              * 
              * @private
              * @param {number} x1 - Starting X coordinate (right edge of source block)
@@ -2290,31 +2207,23 @@
              * @param {number} x2 - Ending X coordinate (left edge of target block)
              * @param {number} y2 - Ending Y coordinate (vertical center of target block)
              * @param {string} color - Arrow color (green for valid, red for error)
-             * @param {string} label - Label text to display on arrow (e.g., 'ƒ', 'ƒ<sub>T</sub>')
+             * @param {string} label - Label text displayed on the arrow (e.g., 'ƒ', 'ƒ<sub>T</sub>')
              * @param {boolean} isValid - Whether the transformation is valid
-             * @param {string} tooltipText - Simple tooltip text (alternative to equationHTML)
-             * @param {number} verticalOffset - Vertical adjustment for arrow position
-             * @param {string|null} equationHTML - Detailed HTML content for tooltip with equations
-             * @param {boolean} showAbove - Whether to show tooltip above (true) or below (false) the arrow
+             * @param {number} verticalOffset - Vertical adjustment applied to both y1 and y2
+             * @param {string|null} equationHTML - HTML content for the hover tooltip
              * @returns {void}
              * 
              * @description
-             * Creates a horizontal arrow connecting two blocks with:
-             * - A solid horizontal line from source to target
-             * - A triangular arrowhead pointing right at the target end
-             * - A centered label showing the function name (ƒ or ƒT)
-             * - Interactive tooltip displaying validation equations on hover
+             * Creates a horizontal arrow with:
+             * - A solid horizontal line from (x1, y1) to (x2, y2)
+             * - A right-pointing triangular arrowhead at the target end
+             * - A centered label with tooltip on hover
              * 
              * Label background color indicates validity:
-             * - Green (#10b981): Valid transformation preserving isomorphism
+             * - Green (#10b981): Valid transformation
              * - Red (#7f1d1d): Invalid transformation (broken isomorphism)
-             * 
-             * The tooltip displays detailed equations showing:
-             * - Which transformation rule applies
-             * - Computed vs actual values
-             * - Success/failure status
              */
-            _drawHorizontalArrow(x1, y1, x2, y2, color, label, isValid, tooltipText = '', verticalOffset = 0, equationHTML = null, showAbove = false) {
+            _drawHorizontalArrow(x1, y1, x2, y2, color, label, isValid, verticalOffset = 0, equationHTML = null) {
                 y1 += verticalOffset;
                 y2 += verticalOffset;
                 
@@ -2351,15 +2260,14 @@
                 labelEl.style.border = `2px solid ${color}`;
                 
                 labelEl.addEventListener('mouseenter', () => {
-                    let tooltipContent = equationHTML || tooltipText || label + ' function';
-                    TooltipManager.show(labelEl, tooltipContent, showAbove);
+                    TooltipManager.show(labelEl, equationHTML || label + ' function', false);
                 });
                 labelEl.addEventListener('mouseleave', () => {
                     TooltipManager.hide();
                 });
                 
                 arrow.appendChild(labelEl);
-                this.container.appendChild(arrow);
+                this._addToLayer(arrow);
             }
         }
 
@@ -2372,28 +2280,20 @@
         class TooltipManager {
 
             /**
-             * Shows tooltip near the target element with dynamic positioning to stay within viewport.
+             * Shows a tooltip near the target element, adjusted to stay within the viewport.
              * 
              * @static
-             * @param {HTMLElement} element - Element that triggered the tooltip (usually an arrow label)
+             * @param {HTMLElement} element - Element that triggered the tooltip (arrow label)
              * @param {string} text - HTML content to display in the tooltip
-             * @param {boolean} showAbove - Whether to position tooltip above (true) or below (false) the element
+             * @param {boolean} showAbove - If true, positions tooltip above the element; otherwise below
              * @returns {void}
              * 
              * @description
-             * Displays a styled tooltip containing:
-             * - Mathematical equations with proper formatting
-             * - Validation status (valid/invalid)
-             * - Color-coded results (green for success, red for errors)
-             * 
              * Positioning logic:
-             * 1. Centers tooltip horizontally relative to the arrow label
-             * 2. Positions above or below based on showAbove parameter
-             * 3. Adjusts position if tooltip would overflow viewport edges
-             * 4. Ensures tooltip remains fully visible within window bounds
-             * 
-             * The tooltip remains visible while hovering over the arrow label
-             * and disappears when the mouse leaves (handled by event listeners in ArrowDrawer).
+             * 1. Centers tooltip horizontally relative to the triggering element
+             * 2. Places above or below based on showAbove parameter
+             * 3. Clamps left/right to prevent overflow past viewport edges
+             * 4. Falls back to opposite side if the preferred side overflows vertically
              */
             static show(element, text, showAbove = false) {
                 const tooltip = document.getElementById('tooltip');
@@ -2484,7 +2384,10 @@
                 
                 input.addEventListener('input', (e) => {
                     const value = e.target.value.trim();
-                    if (value === '' || value === '0') {
+                    const rawValue = parseFloat(value);
+                    const intValue = parseInt(value);
+                    const isInvalid = value === '' || isNaN(rawValue) || rawValue < 1 || rawValue !== intValue;
+                    if (isInvalid) {
                         this.clearVisualization();
                         const exportBtn = document.getElementById('exportBtn');
                         if (exportBtn) exportBtn.disabled = true;
@@ -2532,10 +2435,11 @@
             process() {
                 try {
                     const input = document.getElementById('inputN').value;
+                    const rawValue = parseFloat(input);
                     const n = parseInt(input);
                     const errorDiv = document.getElementById('error');
 
-                    if (!n || n < 1) {
+                    if (!input || isNaN(rawValue) || rawValue < 1 || rawValue !== n) {
                         DOMRenderer.showError('Please enter a valid positive integer for n.', errorDiv);
                         document.getElementById('exportBtn').disabled = true;
                         return;
@@ -2549,7 +2453,8 @@
 
                     DOMRenderer.renderBlocks(
                         this.vizData.items,
-                        document.getElementById('flowContainer')
+                        document.getElementById('flowContainer'),
+                        this.vizData
                     );
 
                     const container = document.getElementById('flowContainer');
@@ -2574,15 +2479,11 @@
             }
 
             /**
-             * Applies pruneDown operation and preserves scroll position.
+             * Applies pruneDown operation and optionally preserves scroll position.
+             * To restore, call unprune().
              * 
-             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} or null
              * @returns {void}
-             * 
-             * @description
-             * Removes intermediate elements between first occurrence and repetition,
-             * keeping the first occurrence visible. Demonstrates how removing the
-             * pseudocycle breaks the isomorphism.
              */
             pruneDown(preserveScrollTarget) {
                 this.vizData.pruneDown();
@@ -2593,15 +2494,11 @@
             }
 
             /**
-             * Applies pruneUp operation and preserves scroll position.
+             * Applies pruneUp operation and optionally preserves scroll position.
+             * To restore, call unprune().
              * 
-             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} or null
              * @returns {void}
-             * 
-             * @description
-             * Removes intermediate elements between first occurrence and repetition,
-             * keeping the second occurrence visible. Demonstrates how removing the
-             * pseudocycle breaks the isomorphism.
              */
             pruneUp(preserveScrollTarget) {
                 this.vizData.pruneUp();
@@ -2612,13 +2509,19 @@
             }
 
             /**
-             * Restores visualization after pruneDown operation.
+             * Restores visualization after pruneDown and optionally preserves scroll position.
              * 
-             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} or null
              * @returns {void}
              */
-            unpruneDown(preserveScrollTarget) {
-                this.vizData.unpruneDown();
+            /**
+             * Restores visualization to unpruned state and optionally preserves scroll position.
+             * 
+             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} or null
+             * @returns {void}
+             */
+            unprune(preserveScrollTarget) {
+                this.vizData.unprune();
                 this.redraw();
                 if (preserveScrollTarget) {
                     this.restoreScrollPosition(preserveScrollTarget);
@@ -2626,29 +2529,11 @@
             }
 
             /**
-             * Restores visualization after pruneUp operation.
+             * Restores scroll position after a pruning operation.
+             * Keeps the target block at the same screen position before and after the redraw.
              * 
-             * @param {Object|null} preserveScrollTarget - Object with {index, offsetFromLeft} to maintain scroll
+             * @param {Object} targetInfo - Object with {index: number, offsetFromLeft: number}
              * @returns {void}
-             */
-            unpruneUp(preserveScrollTarget) {
-                this.vizData.unpruneUp();
-                this.redraw();
-                if (preserveScrollTarget) {
-                    this.restoreScrollPosition(preserveScrollTarget);
-                }
-            }
-
-            /**
-             * Restores scroll position after pruning operations.
-             * 
-             * @param {Object} targetInfo - Object with {index, offsetFromLeft}
-             * @returns {void}
-             * 
-             * @description
-             * Maintains visual continuity by keeping the clicked element at the same
-             * screen position even after elements are hidden/shown. This prevents
-             * jarring jumps when toggling pruning modes.
              */
             restoreScrollPosition(targetInfo) {
                 const container = document.getElementById('flowContainer');
@@ -2674,17 +2559,15 @@
              * @returns {void}
              * 
              * @description
-             * This interactive feature demonstrates pseudocycle removal and its consequences:
-             * 
              * Clicking the first occurrence (✂️):
              * - If unpruned → pruneDown (hide elements, keep first occurrence visible)
-             * - If already pruned-down → unpruneDown (restore all elements)
-             * - If pruned-up → unpruneUp then remain unpruned (switch pruning modes)
+             * - If already pruned-down → unprune (restore all elements)
+             * - If pruned-up → unprune (restore all elements)
              * 
              * Clicking the second occurrence (✂️):
              * - If unpruned → pruneUp (hide elements, keep second occurrence visible)
-             * - If already pruned-up → unpruneUp (restore all elements)
-             * - If pruned-down → unpruneDown then remain unpruned (switch pruning modes)
+             * - If already pruned-up → unprune (restore all elements)
+             * - If pruned-down → unprune (restore all elements)
              * 
              * Visual feedback:
              * - Clicked element gets red border and glow animation (mr-active class)
@@ -2716,27 +2599,23 @@
                 };
 
                 if (which === 'first') {
-                    if (state === 'pruned-down') {
-                        this.unpruneDown(preserveScrollTarget);
-                    } else if (state === 'none') {
+                    if (state === 'none') {
                         this.pruneDown(preserveScrollTarget);
-                    } else if (state === 'pruned-up') {
-                        this.unpruneUp(preserveScrollTarget);
+                    } else {
+                        this.unprune(preserveScrollTarget);
                     }
                 } else if (which === 'second') {
-                    if (state === 'pruned-up') {
-                        this.unpruneUp(preserveScrollTarget);
-                    } else if (state === 'none') {
+                    if (state === 'none') {
                         this.pruneUp(preserveScrollTarget);
-                    } else if (state === 'pruned-down') {
-                        this.unpruneDown(preserveScrollTarget);
+                    } else {
+                        this.unprune(preserveScrollTarget);
                     }
                 }
             }
 
             /**
              * Exports the entire visualization as a PNG image.
-             * Temporarily removes scroll constraints to capture full diagram.
+             * Temporarily removes scroll constraints to capture the full diagram.
              * 
              * @async
              * @returns {Promise<void>}
@@ -2751,15 +2630,13 @@
              * 6. Restores original scroll/display settings
              * 7. Triggers download with filename: collatz_n{value}_{timestamp}.png
              * 8. Handles errors gracefully with user notification
-             * 
-             * Uses dom-to-image library for high-quality PNG rendering.
              */
-            async showExport() {
+            async showExport(e) {
                 try {
-                    const btn = event.target;
+                    const btn = e.currentTarget;
+                    btn.disabled = true;
                     const originalText = btn.textContent;
                     btn.textContent = 'Exporting...';
-                    btn.disabled = true;
                     
                     const overlay = document.createElement('div');
                     overlay.style.position = 'fixed';
@@ -2858,20 +2735,15 @@
             }
 
             /**
-             * Re-renders blocks and arrows after state changes (pruning/unpruning).
+             * Re-renders blocks and arrows after a state change (pruning/unpruning).
              * 
              * @returns {void}
-             * 
-             * @description
-             * Called after any pruning operation to:
-             * 1. Re-render all blocks with updated visibility
-             * 2. Re-draw all arrows with updated validation states
-             * 3. Maintain visual consistency during interactive exploration
              */
             redraw() {
                 DOMRenderer.renderBlocks(
                     this.vizData.items,
-                    document.getElementById('flowContainer')
+                    document.getElementById('flowContainer'),
+                    this.vizData
                 );
 
                 setTimeout(() => {
@@ -2893,15 +2765,10 @@
         const controller = new Controller();
 
         /**
-         * Enable horizontal scrolling with mouse wheel for better navigation.
-         * Converts vertical wheel movements to horizontal scrolling in the flow container.
+         * Converts vertical mouse wheel movement to horizontal scrolling in the flow container.
+         * Improves navigation for long Collatz sequences.
          * 
          * @listens wheel
-         * 
-         * @description
-         * Improves UX for navigating long Collatz sequences by allowing
-         * horizontal scrolling with the mouse wheel instead of requiring
-         * the horizontal scrollbar.
          */
         flowContainer.addEventListener('wheel', (e) => {
             if (e.deltaY !== 0) {
@@ -2910,30 +2777,13 @@
             }
         }, { passive: false });
 
-        /**
-         * Initialize UI state on page load.
-         * Ensures clean state when page is first loaded or refreshed.
-         * 
-         * @listens DOMContentLoaded
-         * 
-         * @description
-         * Sets initial state:
-         * - Export button disabled (no visualization yet)
-         * - Input field cleared (ready for user input)
-         * 
-         * Prevents issues with browser auto-fill or cached states.
-         */
-        document.addEventListener('DOMContentLoaded', function() {
-            const exportBtn = document.getElementById('exportBtn');
-            if (exportBtn) {
-                exportBtn.disabled = true;
-            }
-            
-            const input = document.getElementById('inputN');
-            if (input) {
-                input.value = '';
-            }
-        });
+        // Script runs after body is fully parsed (placed at end of <body>),
+        // so DOM elements are already available — no event listener needed.
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) exportBtn.disabled = true;
+
+        const inputN = document.getElementById('inputN');
+        if (inputN) inputN.value = '';
     </script>
 
     <div class="author-info">
