@@ -96,10 +96,6 @@
             text-shadow: 0 2px 15px rgba(255, 255, 255, 0.2);
         }
 
-        .header p {
-            display: none;
-        }
-
         .input-section {
             display: flex;
             gap: 10px;
@@ -231,11 +227,6 @@
             color: white;
             padding: 3px 8px;
             border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .highlight-red {
-            color: #f44336;
             font-weight: bold;
         }
 
@@ -419,6 +410,9 @@
         /**
          * ALGORITHM CONFIGURATION
          * 
+         * Single entry point for all tuneable constants. Do not introduce
+         * magic numbers elsewhere in the code; add a named field here instead.
+         * 
          * DEFAULT_Q: Default transformation parameter
          * - Value: 1 (simplifies formulas for most use cases)
          * - Theoretical: Any odd positive integer is valid
@@ -428,16 +422,23 @@
          * - Value: 10,000 iterations
          * - Purpose: Prevent infinite loops if sequence doesn't converge
          * - Note: All known Collatz sequences converge well before this limit
-         * - For n < 2^68: Maximum observed stopping time ≈ 1,000
+         * - For n < 2^68: Maximum observed stopping time ~1,000
          * - If exceeded: Throws error to prevent browser freeze
+         * 
+         * MAX_SAFE_N: Upper bound for numerically safe input values
+         * - Value: Number.MAX_SAFE_INTEGER (2^53 - 1)
+         * - Purpose: JavaScript integers lose precision beyond this threshold,
+         *   producing silently incorrect sequence values; inputs above this
+         *   limit are rejected with a visible error before any computation
          */
         const CONFIG = {
             DEFAULT_Q: 1,
-            MAX_SEQUENCE_LENGTH: 10000
+            MAX_SEQUENCE_LENGTH: 10000,
+            MAX_SAFE_N: Number.MAX_SAFE_INTEGER
         };
 
         /**
-         * Applies the Collatz function to a given number
+         * Applies the Collatz function to a given number.
          * 
          * @param {number} n - The input number
          * @returns {number} - The result after applying Collatz rules
@@ -455,7 +456,7 @@
         }
 
         /**
-         * Generates the complete Collatz sequence starting from n until reaching 1
+         * Generates the complete Collatz sequence starting from n until reaching 1.
          * 
          * @param {number} n - The starting positive integer
          * @returns {number[]} - Array containing the complete Collatz sequence
@@ -489,21 +490,47 @@
         }
 
         /**
-         * Calculates the tuple-based transform parameters [p, f(p), m] for a consecutive pair
+         * Computes the next Collatz value from tuple parameters using the reconstruction formula.
+         * 
+         * @param {number} p  - Residue parameter
+         * @param {number} m  - Scale parameter
+         * @param {number} q  - Odd transformation parameter
+         * @param {number} fP - Collatz function applied to p, i.e. f(p)
+         * @returns {number} - The reconstructed ci+1 value
+         * 
+         * Reconstruction formula (equation 9 from paper):
+         * - If p is even: ci+1 = q×m + f(p)
+         * - If p is odd:  ci+1 = 6×q×m + f(p)
+         * 
+         * Single source of truth for the reconstruction formula used by both
+         * calculateTransformParameters() and computePValidation().
+         */
+        function reconstructNext(p, m, q, fP) {
+            return p % 2 === 0 ? q * m + fP : 6 * q * m + fP;
+        }
+
+        /**
+         * Calculates the tuple-based transform parameters [p, f(p), m] for a consecutive pair.
          * 
          * @param {number} ci - First element of the Collatz pair
          * @param {number} ciPlus1 - Second element of the Collatz pair (ci+1)
          * @param {number} q - Odd transformation parameter
          * @returns {Object|null} - Object with {p, fP, m} if valid transform exists, null otherwise
          * 
-         * Algorithm (Definition 2.3 from paper, direct CRT computation O(1)):
-         * 1. Compute p = ci % (2q), adjusted to {1, ..., 2q}
-         * 2. If parity of p does not match ci, adjust p = (p + q) % (2q)
-         * 3. Calculate m = (ci - p) / (2q)
-         * 4. Validate reconstruction formula:
-         *    - If p even: ci+1 = q×m + f(p)
-         *    - If p odd:  ci+1 = 6×q×m + f(p)
-         * 5. Return {p, f(p), m} if valid, null otherwise
+         * Algorithm (Definition 2.3 from paper, explicit CRT solve, O(1)):
+         * The unique p ∈ {1, ..., 2q} satisfying p ≡ ci (mod q) and p ≡ ci (mod 2)
+         * is found directly via the Chinese Remainder Theorem. Because gcd(2, q) = 1
+         * for any odd q, the system has a unique solution modulo 2q. We compute it by
+         * iterating over the two residue candidates that satisfy p ≡ ci (mod q) within
+         * {1, ..., 2q} and selecting the one that also matches the parity of ci.
+         * 
+         * Steps:
+         * 1. Compute the base residue r = ((ci % q) || q), giving r ∈ {1, ..., q}
+         * 2. The two candidates in {1, ..., 2q} with r ≡ ci (mod q) are: r and r + q
+         * 3. Select the candidate whose parity matches ci (exactly one will)
+         * 4. Calculate m = (ci - p) / (2q)  [always a non-negative integer]
+         * 5. Validate via reconstructNext(p, m, q, f(p)) === ciPlus1
+         * 6. Return {p, f(p), m} if valid, null otherwise
          * 
          * @example
          * calculateTransformParameters(7, 22, 1)
@@ -511,12 +538,11 @@
          * // Verification: 7 = 2×1×3 + 1, 22 = 6×1×3 + 4
          */
         function calculateTransformParameters(ci, ciPlus1, q) {
-            let p = ci % (2 * q);
-            if (p === 0) p = 2 * q;
-            if (p % 2 !== ci % 2) p = (p + q) % (2 * q) || 2 * q;
+            const r = (ci % q) || q;               // r ∈ {1, ..., q}, r ≡ ci (mod q)
+            const p = (r % 2 === ci % 2) ? r : r + q; // select candidate matching parity of ci
             const m = (ci - p) / (2 * q);
             const fP = collatzFunction(p);
-            const expectedCiPlus1 = p % 2 === 0 ? q * m + fP : 6 * q * m + fP;
+            const expectedCiPlus1 = reconstructNext(p, m, q, fP);
             if (ciPlus1 === expectedCiPlus1) {
                 return { p, fP, m };
             }
@@ -524,17 +550,15 @@
         }
 
         /**
-         * Returns the complete tuple transformation for a consecutive Collatz pair
+         * Returns the complete tuple transformation for a consecutive Collatz pair.
          * 
          * @param {number} ci - First element of the pair
          * @param {number} ciPlus1 - Second element of the pair (ci+1)
          * @param {number} q - Odd transformation parameter
          * @returns {Object|null} - Tuple object with originalPair, p, fP, m, q if valid; null otherwise
          * 
-         * Wrapper function that:
-         * 1. Calls calculateTransformParameters to find valid (p, f(p), m)
-         * 2. Packages result into structured tuple object
-         * 3. Preserves original pair for reference
+         * Wrapper around calculateTransformParameters that packages the result
+         * into a structured tuple object preserving the original pair for reference.
          * 
          * Return structure:
          * {
@@ -564,7 +588,7 @@
         }
 
         /**
-         * Main algorithm: Transforms entire Collatz sequence into tuple-based representation
+         * Main algorithm: Transforms entire Collatz sequence into tuple-based representation.
          * 
          * @param {number} n - Starting positive integer
          * @param {number} [q=1] - Odd transformation parameter (default: 1)
@@ -620,7 +644,7 @@
         }
 
         /**
-         * Validates a test value of p against all required transformation conditions
+         * Validates a test value of p against all required transformation conditions.
          * 
          * @param {number} testP - Candidate p value to validate
          * @param {number} ci - First element of Collatz pair
@@ -632,7 +656,7 @@
          * 1. Parity match: testP ≡ ci (mod 2)
          * 2. Divisibility: (ci - testP) divisible by 2q
          * 3. Non-negativity: m = (ci - testP)/(2q) ≥ 0
-         * 4. Formula match: ci+1 equals expected value from reconstruction
+         * 4. Formula match: reconstructNext(testP, m, q, f(testP)) === ciPlus1
          * 
          * Return structure:
          * {
@@ -647,8 +671,6 @@
          *   ci: number,                  // Original ci (for reference)
          *   q: number                    // Parameter q (for reference)
          * }
-         * 
-         * Used by displayPValidationResult() to show step-by-step validation in UI
          */
         function computePValidation(testP, ci, ciPlus1, q) {
             const fP = collatzFunction(testP);
@@ -674,7 +696,7 @@
                 result.mNonNegative = result.m >= 0;
                 
                 if (result.mNonNegative) {
-                    const expected = testP % 2 === 0 ? q * result.m + fP : 6 * q * result.m + fP;
+                    const expected = reconstructNext(testP, result.m, q, fP);
                     result.expectedCiPlus1 = expected;
                     result.formulaMatch = expected === ciPlus1;
                 }
@@ -684,29 +706,23 @@
         }
 
         /**
-         * Displays detailed step-by-step validation results for a candidate p value
+         * Generates the HTML row for a single candidate p value in the transformation process.
          * 
          * @param {number} testP - The p value being tested
          * @param {Object} result - Validation result from computePValidation()
-         * @param {number|null} winningP - The actual valid p value (if found), null otherwise
-         * @returns {void} - Updates DOM element #pValidationResult
+         * @param {number} winningP - The actual valid p value for this step
+         * @returns {string} - HTML string for one .test-p row
          * 
-         * Renders a comprehensive breakdown showing:
-         * 1. Header: "Testing p = {testP}" with color coding based on validity
-         * 2. Parity check: ✓/✗ comparing testP vs ci parity
-         * 3. Divisibility check: Shows (ci - testP) and divisibility by 2q
-         * 4. Non-negativity check: Displays calculated m value
-         * 5. Formula verification: Shows expected vs actual ci+1
+         * Renders a single validation row showing:
+         * - Parity check result for testP
+         * - Divisibility and m calculation (if parity passes)
+         * - f(p) value and formula verification (if m ≥ 0)
          * 
-         * Visual format:
-         * - Valid results: green borders and checkmarks
-         * - Invalid results: red borders and crosses
-         * - Mathematical expressions in monospace font
-         * 
-         * Called by: Event handlers when user tests specific p values
-         * Target element: <div id="pValidationResult"></div>
+         * Visual coding:
+         * - Winning p (valid transform): green text, success border
+         * - All other p values: red text, fail border
          */
-        function displayPValidationResult(testP, result, winningP) {
+        function buildPValidationRowHTML(testP, result, winningP) {
             const isWinner = testP === winningP;
             const className = isWinner ? 'success' : 'fail';
             const color = isWinner ? 'color: #4caf50' : 'color: #f44336';
@@ -729,40 +745,35 @@
         }
 
         /**
-         * Main calculation handler triggered by user clicking "Process" button
+         * Main calculation handler triggered by user clicking "Process" button.
          * 
-         * @returns {void} - Updates multiple DOM sections with results or errors
+         * @returns {void} - Updates DOM sections with results or error messages
          * 
          * Workflow:
          * 1. Read and validate user inputs (n and q)
-         * 2. Validate n is a positive integer within limits
-         * 3. Validate q is odd and positive
-         * 4. Generate Collatz sequence from n
-         * 5. Apply tuple-based transform φ_q
-         * 6. Display results in four sections:
-         *    - Collatz sequence visualization
-         *    - Tuple transformation table
-         *    - p-sequence
-         *    - m-sequence
-         * 7. Show additional analysis sections
-         * 8. Handle and display errors if validation fails
+         * 2. Validate n is a positive integer with no decimal part
+         * 3. Validate n does not exceed MAX_SAFE_N
+         * 4. Validate q is a parseable odd positive integer;
+         *    if q field is empty, DEFAULT_Q is used silently
+         * 5. Show loading spinner during computation
+         * 6. Call tupleBasedTransform(n, q) to run the algorithm
+         * 7. Call displayResults() to render all output sections
+         * 8. Display error message if any validation or computation step fails
          * 
-         * DOM Updates:
-         * - #n-input: Read starting value
-         * - #q-input: Read transformation parameter
-         * - #results: Display transformation results
-         * - #error: Display validation errors
+         * Input parsing:
+         * - n: parsed with Number() + Number.isInteger() to reject decimals like 3.7
+         * - q: parsed with parseInt(); empty field silently uses DEFAULT_Q;
+         *   any non-numeric value produces NaN and triggers an explicit error
          * 
-         * Error Conditions:
-         * - n < 1 or n not integer: "Please enter a valid positive integer"
+         * Error conditions:
+         * - n not a positive integer (including decimals): "Please enter a valid positive integer"
+         * - n > MAX_SAFE_N (2^53-1): "n exceeds safe integer precision limit"
+         * - q is non-numeric (NaN): "Parameter q must be an odd positive integer"
          * - q even or q < 1: "Parameter q must be an odd positive integer"
          * - Sequence exceeds MAX_SEQUENCE_LENGTH: "Sequence exceeded maximum length"
+         * - Transform fails for any pair: propagated from tupleBasedTransform()
          * 
-         * Performance:
-         * - Small delay (100ms) for UI update before calculation
-         * - Shows loading spinner during computation
-         * 
-         * Called by: Click event on "Process" button
+         * Called by: onclick on the "Process" button and Enter keypress on inputs
          */
         function calculate() {
             const nInput = document.getElementById('n-input');
@@ -770,17 +781,31 @@
             const resultsDiv = document.getElementById('results');
             const errorDiv = document.getElementById('error');
             
-            const n = parseInt(nInput.value);
-            const q = parseInt(qInput.value) || CONFIG.DEFAULT_Q;
+            const n = Number(nInput.value);
+            const qRaw = qInput.value.trim();
+            const q = qRaw === '' ? CONFIG.DEFAULT_Q : parseInt(qRaw);
             
-            // Validation
-            if (!n || n < 1) {
+            if (!Number.isInteger(n) || n < 1) {
                 errorDiv.innerHTML = '<div class="error-message">Please enter a valid positive integer for n</div>';
                 errorDiv.style.display = 'block';
                 resultsDiv.classList.remove('show');
                 return;
             }
+
+            if (n > CONFIG.MAX_SAFE_N) {
+                errorDiv.innerHTML = `<div class="error-message">n exceeds the safe integer precision limit (2<sup>53</sup>-1 = ${CONFIG.MAX_SAFE_N.toLocaleString()}). JavaScript cannot represent integers beyond this value exactly, which would produce silently incorrect results.</div>`;
+                errorDiv.style.display = 'block';
+                resultsDiv.classList.remove('show');
+                return;
+            }
             
+            if (isNaN(q)) {
+                errorDiv.innerHTML = '<div class="error-message">Parameter q must be an odd positive integer</div>';
+                errorDiv.style.display = 'block';
+                resultsDiv.classList.remove('show');
+                return;
+            }
+
             if (q < 1 || q % 2 === 0) {
                 errorDiv.innerHTML = '<div class="error-message">Parameter q must be an odd positive integer</div>';
                 errorDiv.style.display = 'block';
@@ -788,15 +813,12 @@
                 return;
             }
             
-            // Clear error if valid
             errorDiv.innerHTML = '';
             errorDiv.style.display = 'none';
             
-            // Show loading
             resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Calculating...</div>';
             resultsDiv.classList.add('show');
             
-            // Calculate with small delay for UI update
             setTimeout(() => {
                 try {
                     const { collatzSeq, tupleTransforms, pSequence, mSequence } = tupleBasedTransform(n, q);
@@ -810,26 +832,23 @@
         }
 
         /**
-         * Orchestrates the display of all transformation results across multiple sections
+         * Renders all transformation results into the #results DOM section.
          * 
          * @param {number} n - Starting value
          * @param {number} q - Transformation parameter
          * @param {number[]} collatzSeq - Complete Collatz sequence
-         * @param {Object[]} tupleTransforms - Array of tuple objects
+         * @param {Object[]} tupleTransforms - Array of tuple objects from tupleBasedTransform()
          * @param {number[]} pSequence - Residue parameter sequence
          * @param {number[]} mSequence - Scale parameter sequence
-         * @returns {void} - Updates multiple DOM sections
+         * @returns {void} - Writes HTML directly into #results
          * 
-         * Coordinates display by calling:
-         * 1. displayCollatzSequence(collatzSeq)
-         * 2. displayTupleTransform(tupleTransforms, n, q)
-         * 3. displayPSequence(pSequence)
-         * 4. displayMSequence(mSequence)
-         * 
-         * Makes visible:
-         * - #results section (all content injected dynamically as HTML)
-         * 
-         * Called by: calculate() after successful transformation
+         * Renders five sections in order:
+         * 1. Algorithm Setup — initial values n and q
+         * 2. Collatz Sequence — full sequence with length
+         * 3. Tuple-based Transform and Reconstruction — one card per step,
+         *    built by generateTransformStepHTML()
+         * 4. p-Parameters Sequence — full sequence with length
+         * 5. m-Parameters Sequence — full sequence with length
          */
         function displayResults(n, q, collatzSeq, tupleTransforms, pSequence, mSequence) {
             const resultsDiv = document.getElementById('results');
@@ -885,28 +904,19 @@
         }
 
         /**
-         * Generates HTML representation for a single transformation step (one tuple)
+         * Generates the HTML card for a single transformation step (one tuple).
          * 
          * @param {number} stepNum - Step number (1-based for display)
          * @param {Object} transform - Tuple object with {originalPair, p, fP, m, q}
-         * @returns {string} - HTML string for the transformation step
+         * @returns {string} - HTML string for the .transform-step card
          * 
-         * Renders a detailed card showing:
-         * 1. Step header: "Step {stepNum}: Pair (ci, ci+1)"
-         * 2. Original pair values with arrow notation
-         * 3. Resulting tuple: [p, f(p), m, q]
-         * 4. Interactive "Show Details" button
-         * 5. Collapsible details panel containing:
-         *    - m calculation breakdown
-         *    - Reconstruction verification (ci = 2qm + p)
-         *    - Formula verification for ci+1
-         * 
-         * HTML structure:
-         * - Outer div: .transform-step
-         * - Details panel: .step-details (hidden by default)
-         * - Toggle button triggers showStepDetails(stepNum-1)
-         * 
-         * Called by: displayTupleTransform() for each tuple in sequence
+         * Renders a card with three parts:
+         * 1. Original pair — (ci, ci+1) with 1-based subscript indices
+         * 2. Transformation process — iterates all testP ∈ [1, 2q] with same
+         *    parity as ci; each row built by buildPValidationRowHTML()
+         * 3. Tuple result — [p, f(p), m, q]
+         * 4. Reconstruction — verifies ci = 2qm + p and ci+1 via the
+         *    appropriate formula (even/odd branch of p)
          */
         function generateTransformStepHTML(stepNum, transform) {
             const [ci, ciPlus1] = transform.originalPair;
@@ -927,7 +937,7 @@
             
             for (let testP = 1; testP <= 2 * q; testP++) {
                 const result = computePValidation(testP, ci, ciPlus1, q);
-                html += displayPValidationResult(testP, result, p);
+                html += buildPValidationRowHTML(testP, result, p);
             }
             
             html += `
@@ -961,27 +971,13 @@
         }
 
         /**
-         * Initializes the application when DOM is fully loaded
+         * Initializes the application when the DOM is fully loaded.
          * 
-         * @returns {void} - Sets up event listeners and initial UI state
+         * @returns {void} - Attaches event listeners and sets initial UI state
          * 
-         * Initialization tasks:
-         * 1. Attach click handler to "Calculate Transform" button
-         *    - Calls calculate() on click
-         * 2. Attach keypress handler to input fields
-         *    - Triggers calculation on Enter key
-         * 3. Set focus on n input field for immediate user interaction
-         * 
-         * Event listeners attached:
-         * - #calculateBtn: click → calculate()
-         * - #nInput: keypress → Enter triggers calculate()
-         * - #qInput: keypress → Enter triggers calculate()
-         * 
-         * Initial state:
-         * - n input field receives focus
-         * - All result sections hidden until first calculation
-         * 
-         * Called by: Browser when DOM parsing completes
+         * Sets up Enter-key triggers on both input fields so the user can
+         * run the calculation without clicking the button. Clears any
+         * browser-autofilled value in the n input on load.
          */
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('n-input').addEventListener('keypress', function(e) {
