@@ -422,34 +422,7 @@
         .type-c { 
             background: #795548; color: white; 
         }
-
-        .current-value-highlight {
-            background: #FFD700;
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .equation-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(48, 48, 48, 0.6);
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            font-family: 'Times New Roman', serif;
-        }
     </style>
- 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            }
-        };
-    </script>
 </head>
 <body>
     <div class="controls-top">
@@ -497,7 +470,7 @@
         <button id="resetBtn" onclick="resetRotation()" style="margin-top: 10px; font-size: 11px; padding: 6px 12px;">Reset View</button>
     </div>
 
-    <div class="info-panel" id="infoPanel">
+    <div class="info-panel">
         <h3>Sequence Info</h3>
         <div id="infoPanelContent">
             <div class="info-item">
@@ -844,16 +817,16 @@
          */
 
         /**
-         * Computes the complete Collatz sequence for a given starting number
+         * Computes the complete Collatz sequence for a given starting number.
          * 
          * Implements the standard Collatz conjecture rules:
          * - If n is even: divide by 2
          * - If n is odd: multiply by 3 and add 1
          * 
          * Continues until reaching 1, which marks the end of the sequence.
-         * All known Collatz sequences eventually reach the cycle (4,2,1).
+         * All known Collatz sequences eventually reach the cycle (4, 2, 1).
          * 
-         * @param {number} n - The starting number (must be positive integer)
+         * @param {number} n - The starting number (must be a positive integer)
          * @returns {Array<number>} Complete sequence from n to 1
          * 
          * @example
@@ -874,31 +847,41 @@
         }
 
         /**
-         * Processes a user-input number through the Collatz algorithm
+         * Processes a user-input number through the Collatz algorithm.
          * 
          * This function handles the complete workflow:
          * 1. Validates user input
          * 2. Computes the Collatz sequence
-         * 3. Finds intersection with precomputed wormhole data
+         * 3. Finds the first intersection with a precomputed wormhole entry point
          * 4. Updates the 3D visualization
          * 5. Displays sequence information
          * 
-         * The function searches for an "entry point" - the first value in the precomputed
-         * sequence that matches a key in the DICTIONARY. This represents the point
-         * where the sequence enters a known "wormhole" path.
+         * The "entry point" is the first value in the computed sequence that matches
+         * a key in the DICTIONARY, i.e. the position where the sequence enters a
+         * known wormhole path.
+         * 
+         * Input is validated against four rules: non-empty, digits only (no decimals
+         * or mixed strings), strictly positive, and no greater than 10,000,000,000
+         * (the declared HTML max, enforced in JS to guard against bypass).
+         * Errors are shown via the #error div; no exceptions are thrown.
          * 
          * @returns {void} Updates global state and UI
-         * 
-         * @throws {Alert} If input is invalid or no wormhole intersection found
          */
         function processCollatz() {
             const input = document.getElementById('numberInput');
             const number = parseInt(input.value);
             const errorDiv = document.getElementById('error');
 
-            // Input validation
-            if (!number || number <= 0) {
-                errorDiv.innerHTML = '<div class="error-message">Please enter a number greater than 0</div>';
+            // Input validation: must be a non-empty string of digits only,
+            // a positive integer, and within the safe arithmetic range
+            const rawValue = input.value.trim();
+            if (!/^\d+$/.test(rawValue) || isNaN(number) || number <= 0) {
+                errorDiv.innerHTML = '<div class="error-message">Please enter a positive integer greater than 0</div>';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (number > 10000000000) {
+                errorDiv.innerHTML = '<div class="error-message">Please enter a number no greater than 10,000,000,000</div>';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -941,7 +924,7 @@
                 highlightCurrentSphere();
                 updateProcessedInfo();
             } else {
-                // No intersection found: this should never happend
+                // No intersection found: this should never happen
                 errorDiv.innerHTML = `<div class="error-message">⚠️ Number ${number} does not intersect with any known wormhole</div>`;
                 errorDiv.style.display = 'block';
             }
@@ -949,24 +932,25 @@
         }
 
         /**
-         * Calculates the taxonomic type (A, B or C) of a Collatz sequence
+         * Calculates the taxonomic type (A, B, or C) of a Collatz sequence.
          * 
-         * Classification is based on the Tuple-based Transform theory:
-         * - Type A: Maximum occurs BEFORE the pseudocycle (before Entry Point)
+         * Classification is based on the Tuple-based Transform theory and the
+         * position of the sequence maximum relative to the pseudocycle boundaries:
+         * - Type A: Maximum occurs BEFORE the pseudocycle (before the Entry Point)
          * - Type B: Maximum occurs WITHIN the pseudocycle (between Entry Point and Exiting Point)
-         * - Type C: Maximum occurs AFTER the pseudocycle  (after Exiting Point)
+         * - Type C: Maximum occurs AFTER the pseudocycle (after the Exiting Point)
          * 
-         * This classification reveals geometric patterns in Collatz behavior
-         * and helps predict convergence characteristics according to the research framework.
+         * This classification reveals geometric patterns in Collatz behavior and helps
+         * predict convergence characteristics according to the research framework.
          * 
          * @param {Array<number>} sequence - Complete Collatz sequence
-         * @param {number} entrypoint - The wormhole entry value
-         * @returns {string} Classification: 'A', 'B' or 'C'
+         * @param {number} entrypoint - The wormhole entry value (key in DICTIONARY)
+         * @returns {string} Classification: 'a', 'b', or 'c' (lowercase)
          * 
          * @example
          * // For sequence [7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
-         * // with entry point at 16 (standard cycle beginning)
-         * calculateSequenceType(sequence, 16) // returns 'A' (max 52 occurs before pseudocycle)
+         * // Max value 52 occurs before the pseudocycle [7,8]
+         * calculateSequenceType(sequence, 7) // returns 'a'
          */
         function calculateSequenceType(sequence, entrypoint) {
             const collatzData = DICTIONARY[entrypoint.toString()];
@@ -976,15 +960,14 @@
                 return "a";
             }
 
-            let maxValue = Math.max(...sequence);
-            let maxIndex = sequence.indexOf(maxValue);
+            const maxValue = Math.max(...sequence);
+            const maxIndex = sequence.indexOf(maxValue);
          
             const firstPseudoValue = collatzData.pseudocycle[0];
             const secondPseudoValue = collatzData.pseudocycle[1];
-            let firstPseudoPosition = sequence.indexOf(firstPseudoValue);
-            let secondPseudoPosition = sequence.indexOf(secondPseudoValue);
+            const firstPseudoPosition = sequence.indexOf(firstPseudoValue);
+            const secondPseudoPosition = sequence.indexOf(secondPseudoValue);
             
-            // This is the implementation logic:
             if (firstPseudoPosition === -1 || secondPseudoPosition === -1) {
                 return "a"; // Type A: Maximum before the pseudocycle
             }
@@ -1005,13 +988,13 @@
          */
 
         /**
-         * Initializes the Three.js scene and sets up the complete 3D environment
+         * Initializes the Three.js scene and sets up the complete 3D environment.
          * 
          * Creates the scene, camera, renderer and sets up all the necessary
-         * components for the amphora visualization including lighting, mouse controls
-         * and the main visualization structure.
+         * components for the amphora visualization, including lighting, mouse controls
+         * and the main visualization structure. Starts the animation loop.
          * 
-         * @returns {void} Initializes global Three.js objects and starts animation loop
+         * @returns {void} Initializes global Three.js objects and starts the animation loop
          */
         function init() {
             // Create the main Three.js scene
@@ -1039,16 +1022,16 @@
         }
 
         /**
-         * Creates the complete amphora visualization structure
+         * Creates the complete amphora visualization structure.
          * 
          * This is the main function that builds the entire 3D amphora:
          * 1. Creates sphere groups for organization
          * 2. Generates convergence points (base of amphora)
-         * 3. Creates master curves (42 Bézier paths forming amphora shape)
+         * 3. Creates master curves (42 Bézier paths forming the amphora shape)
          * 4. Places spheres along each curve representing wormhole sequences
-         * 5. Applies color coding and adds to scene
+         * 5. Applies color coding and adds everything to the scene
          * 
-         * @returns {void} Updates scene with complete amphora structure
+         * @returns {void} Updates the scene with the complete amphora structure
          */
         function createVisualization() {
             // Clean up existing visualization if present
@@ -1061,18 +1044,17 @@
 
             // Get the 42 wormhole keys from the precomputed dictionary
             const collatzKeys = Object.keys(DICTIONARY);
-            const totalApothems = Object.keys(DICTIONARY).length; // Should be 42
 
             // Build the geometric structure of the amphora
-            createConvergencePoints(collatzKeys, totalApothems);
-            createMasterCurves(totalApothems);
+            createConvergencePoints(collatzKeys.length);
+            createMasterCurves(collatzKeys.length);
 
             // Place spheres along each of the 42 curves
             for (let i = 0; i < collatzKeys.length; i++) {
                 const key = collatzKeys[i];
                 const sequence = DICTIONARY[key].wormhole;
                 const masterCurve = masterCurves[i];
-                placeSpheres(i, key, sequence, masterCurve);
+                placeSpheres(i, sequence, masterCurve);
             }
 
             // Apply final color scheme and rotations
@@ -1085,13 +1067,12 @@
         }
         
         /**
-         * Sets up the lighting system for optimal 3D sphere visualization
+         * Sets up the lighting system for optimal 3D sphere visualization.
          * 
-         * Creates a three-light setup that ensures the amphora spheres are
-         * clearly visible from all angles with proper depth perception and
-         * color differentiation. The lighting scheme is carefully balanced
-         * to highlight the mathematical color coding while maintaining
-         * excellent visual clarity for the 3D structure.
+         * Creates a three-light setup that ensures the amphora spheres are clearly
+         * visible from all angles with proper depth perception and color differentiation.
+         * The scheme uses one ambient light for base illumination, one directional light
+         * for primary shading, and one point light for secondary highlights.
          * 
          * @returns {void} Adds three light sources to the scene
          */        
@@ -1107,17 +1088,16 @@
         }
 
         /**
-         * Creates the convergence points that form the base of the amphora
+         * Creates the convergence points that form the base of the amphora.
          * 
          * These points represent where all Collatz sequences eventually converge.
          * They are arranged in a circle at the bottom of the amphora and serve
-         * as starting points for the 42 master curves.
+         * as the starting positions for the 42 master curves.
          * 
-         * @param {Array<string>} collatzKeys - Keys from the DICTIONARY (42 values)
-         * @param {number} totalApothems - Total number of curves (should be 42)
-         * @returns {void} Updates global convergencePoints array
+         * @param {number} totalApothems - Total number of curves to create (42)
+         * @returns {void} Populates the global convergencePoints array
          */
-        function createConvergencePoints(collatzKeys, totalApothems) {
+        function createConvergencePoints(totalApothems) {
             const convergenceCircleRadius = 1.4; // Radius of the base circle
             const convergenceY = -14;            // Y position (bottom of amphora)
     
@@ -1134,19 +1114,20 @@
         }
 
         /**
-         * Creates the 42 master curves that define the amphora shape
+         * Creates the 42 master curves that define the amphora shape.
          * 
-         * Each curve is a complex Bézier path that represents one "wormhole" trajectory.
-         * The curves collectively form the characteristic amphora shape:
-         * - Pinnacle: Narrow bottom section
-         * - Melon: Wide middle section (main body)
-         * - Cylinder: Extended top section
+         * Each curve is a composite Bézier path that represents one wormhole trajectory.
+         * The curves collectively form the characteristic amphora shape through four sections:
+         * - Pinnacle: Narrow bottom section where sequences converge
+         * - Melon: Wide middle section (main body, widest point)
+         * - Melon top: Transition from wide body to narrow neck
+         * - Cylinder: Extended top section accommodating long sequences
          * 
          * The amphora metaphor: like ancient Greek vessels that stored treasures,
          * this mathematical amphora contains the rules governing Collatz behavior.
          * 
          * @param {number} totalApothems - Number of curves to create (42)
-         * @returns {void} Updates global masterCurves array
+         * @returns {void} Populates the global masterCurves array
          */
         function createMasterCurves(totalApothems) {
             masterCurves = [];
@@ -1217,19 +1198,26 @@
         }
         
         /**
-         * Places spheres along a master curve representing a Collatz sequence
+         * Places spheres along a master curve representing a wormhole sequence.
          * 
-         * Each sphere represents one number in a wormhole sequence. Spheres are
-         * evenly spaced along the curve using arc-length parameterization for
-         * consistent visual spacing regardless of curve complexity.
+         * Each sphere represents one number in the wormhole sequence. Spheres are evenly
+         * spaced along the curve using arc-length parameterization for consistent visual
+         * spacing regardless of curve complexity. All spheres are created with the default
+         * GREEN color; final color coding is applied afterwards by applyFinalColors().
          * 
-         * @param {number} apotemIndex - Index of the curve (0-41)
-         * @param {string} key - Dictionary key for this wormhole
+         * Sphere metadata stored in userData:
+         * - value: The Collatz number this sphere represents
+         * - apotemIndex: Index of the curve (0–41)
+         * - sequenceIndex: Position within the wormhole sequence
+         * - isOne: Whether this sphere represents the final convergence value (1)
+         * - baseColor: The sphere's assigned color (used for highlight/restore)
+         * 
+         * @param {number} apotemIndex - Index of the curve (0–41)
          * @param {Array<number>} sequence - Complete wormhole sequence
          * @param {THREE.CatmullRomCurve3} masterCurve - The curve to place spheres on
-         * @returns {void} Adds spheres to the spheresGroup
+         * @returns {void} Adds sphere meshes to spheresGroup
          */
-        function placeSpheres(apotemIndex, key, sequence, masterCurve) {
+        function placeSpheres(apotemIndex, sequence, masterCurve) {
             const sphereGeometry = new THREE.SphereGeometry(sphereSize, 8, 6);
 
             // Get evenly distributed points along the curve (high resolution)
@@ -1242,8 +1230,7 @@
                 totalLength += curvePoints[j].distanceTo(curvePoints[j-1]);
                 pointDistances.push(totalLength);
             }
-            const fullSequence = sequence;
-            const numSpheres = fullSequence.length;
+            const numSpheres = sequence.length;
             const maxAllowedDistance = totalLength * 0.95;  // Stay within curve bounds
             const positions = [];
             
@@ -1283,8 +1270,8 @@
             
             // Create spheres at calculated positions
             for (let j = 0; j < positions.length; j++) {
-                const sequenceIndex = fullSequence.length - 1 - j; // Reverse order for proper flow
-                const value = fullSequence[sequenceIndex];
+                const sequenceIndex = sequence.length - 1 - j; // Reverse order for proper flow
+                const value = sequence[sequenceIndex];
                 const material = new THREE.MeshPhongMaterial({ color: SPHERE_COLORS.GREEN });
                 const sphere = new THREE.Mesh(sphereGeometry, material);
                 sphere.position.copy(positions[j]);
@@ -1303,17 +1290,15 @@
         }
 
         /**
-         * Visualizes the user's input sequence on the amphora structure
+         * Visualizes the user's input sequence on the amphora structure.
          * 
-         * When a user inputs a number, this function creates spheres that
-         * show the computed sequence overlaid on the existing amphora structure.
-         * The spheres follow the same curve as the corresponding wormhole and
-         * are colored according to their mathematical properties (computed,
-         * dictionary, pseudocycle or final values).
+         * Creates spheres for each element of the computed sequence, overlaid on
+         * the corresponding wormhole curve in extensionsGroup. Color coding is
+         * applied via applySequenceColors(). The sphere representing the maximum
+         * value is rendered at 2.5× the standard size for emphasis.
          * 
-         * @returns {void} Updates extensionsGroup with new sequence spheres
+         * @returns {void} Rebuilds extensionsGroup with the current result's sequence spheres
          */
-        
         function visualizeUserSequence() {
             extensionsGroup.clear(); // Remove any existing user sequence
 
@@ -1394,21 +1379,24 @@
 
                 // Apply color coding based on sequence properties
                 applySequenceColors(result);
-                adjustCameraForSequence(result);
+                adjustCameraForSequence();
             }
         }
         
         /**
-         * Applies color coding to spheres based on Collatz sequence properties
+         * Applies color coding to the user sequence spheres in extensionsGroup.
          * 
          * Color scheme:
-         * - White: The final value (1)
-         * - Orange: Computed values (before wormhole entry)
-         * - Red: Pseudocycle values (repeating pattern)
-         * - Green: Dictionary values (wormhole data)
+         * - White:  The final convergence value (1)
+         * - Orange: Computed values before the wormhole entry point
+         * - Red:    Pseudocycle boundary values (entry and exiting points)
+         * - Green:  Precomputed wormhole values from the DICTIONARY
          * 
-         * @param {Object} result - Processed sequence result with entrypoint info
-         * @returns {void} Updates sphere materials with appropriate colors
+         * Also stores the assigned color as baseColor in userData so it can be
+         * restored after yellow highlight is removed during navigation.
+         * 
+         * @param {Object} result - Processed sequence result containing entrypoint info
+         * @returns {void} Updates sphere materials in extensionsGroup
          */
         function applySequenceColors(result) {
             const collatzData = DICTIONARY[result.entrypoint.toString()];
@@ -1435,12 +1423,17 @@
         }
         
         /**
-         * Applies final color scheme to the base amphora structure
+         * Applies final color coding to all spheres in the base amphora structure.
          * 
-         * Sets the default colors for all spheres in the main amphora based on
-         * their mathematical significance in the wormhole sequences.
+         * Sets each sphere's color based on its mathematical role within its wormhole:
+         * - White: The final convergence value (1)
+         * - Red:   Pseudocycle boundary values (entry and exiting points)
+         * - Green: All other precomputed wormhole values
          * 
-         * @returns {void} Updates sphere colors in spheresGroup
+         * Also stores the assigned color as baseColor in userData so it can be
+         * restored after a yellow navigation highlight is removed.
+         * 
+         * @returns {void} Updates sphere materials in spheresGroup
          */
         function applyFinalColors() {
             const collatzKeys = Object.keys(DICTIONARY);
@@ -1472,13 +1465,11 @@
          */
 
         /**
-         * Main animation loop using requestAnimationFrame
+         * Main animation loop using requestAnimationFrame.
          * 
-         * This is the core rendering loop that continuously updates the display.
-         * It runs at the browser's refresh rate (typically 60fps) and renders
-         * the scene with the current camera position and object states.
+         * Continuously re-renders the scene at the browser's refresh rate (typically 60 fps).
          * 
-         * @returns {void} Continuous rendering loop
+         * @returns {void} Schedules itself recursively via requestAnimationFrame
          */
         function animate() {
             requestAnimationFrame(animate); // Schedule next frame
@@ -1486,13 +1477,13 @@
         }
 
         /**
-         * Updates the rotation of both sphere groups based on current rotation values
+         * Applies the current rotationX/Y/Z values to both sphere groups.
          * 
-         * Applies the same rotation transformations to both the base amphora structure
-         * (spheresGroup) and any user sequence overlays (extensionsGroup) to keep
-         * them synchronized during rotation operations.
+         * Synchronizes rotation across spheresGroup (base amphora) and extensionsGroup
+         * (user sequence overlays) so both move as a single unified structure when
+         * the user rotates the view.
          * 
-         * @returns {void} Updates rotation of 3D groups
+         * @returns {void} Updates the rotation properties of both 3D groups
          */
         function updateRotation() {
             if (spheresGroup) {
@@ -1508,7 +1499,7 @@
         }
 
         /**
-         * Rotates the amphora around the X-axis by the specified amount
+         * Rotates the amphora around the X-axis by the specified amount.
          * 
          * X-axis rotation tilts the amphora forward/backward, allowing users
          * to view it from different vertical angles.
@@ -1522,7 +1513,7 @@
         }
         
         /**
-         * Rotates the amphora around the Y-axis by the specified amount
+         * Rotates the amphora around the Y-axis by the specified amount.
          * 
          * Y-axis rotation spins the amphora left/right, allowing users to
          * view different sides and see the circular arrangement of the 42 curves.
@@ -1536,10 +1527,10 @@
         }
         
         /**
-         * Rotates the amphora around the Z-axis by the specified amount
+         * Rotates the amphora around the Z-axis by the specified amount.
          * 
-         * Z-axis rotation rolls the amphora clockwise/counterclockwise,
-         * providing additional viewing angles for detailed inspection.
+         * Z-axis rotation rolls the amphora clockwise/counterclockwise, providing
+         * additional viewing angles for detailed inspection.
          * 
          * @param {number} delta - Rotation amount in radians (positive = clockwise roll)
          * @returns {void} Updates rotationZ and applies rotation
@@ -1550,7 +1541,7 @@
         }
         
         /**
-         * Resets the camera and rotation to default viewing position
+         * Resets the camera and rotation to the default viewing position.
          * 
          * Returns the amphora to its initial orientation and camera position,
          * providing a consistent starting point for exploration. The default
@@ -1568,16 +1559,14 @@
         }
 
         /**
-         * Highlights the currently selected sphere in the sequence
+         * Highlights the sphere corresponding to the current navigation step.
          * 
-         * This function provides visual feedback by highlighting the sphere
-         * corresponding to the current step in the Collatz sequence. It:
-         * 1. Removes highlighting from the previously selected sphere
-         * 2. Finds the sphere for the current sequence index
-         * 3. Changes its color to yellow and adds emissive glow
-         * 4. Scrolls the sequence display to keep the current value visible
+         * Removes highlighting from the previously selected sphere, then finds
+         * and highlights the sphere at currentSequenceIndex by coloring it yellow
+         * with a subtle emissive glow. Also scrolls the sequence display to keep
+         * the active value visible.
          * 
-         * @returns {void} Updates sphere highlighting and UI scroll position
+         * @returns {void} Updates sphere highlighting and sequence display scroll position
          */
         function highlightCurrentSphere() {
             if (currentHighlightedSphere) {
@@ -1588,7 +1577,6 @@
 
             // Find and highlight the current sphere
             if (currentResultIndex >= 0) {
-                const result = processedResults[currentResultIndex];
                 for (const sphere of extensionsGroup.children) {
                     if (sphere.userData && sphere.userData.sequenceIndex === currentSequenceIndex) {
                         currentHighlightedSphere = sphere;
@@ -1622,12 +1610,12 @@
         }
 
         /**
-         * Moves to the previous step in the current Collatz sequence
+         * Moves to the previous step in the current Collatz sequence.
          * 
-         * Allows users to step backward through the sequence, updating
-         * both the 3D highlighting and the sequence information display.
+         * Decrements currentSequenceIndex and updates both the 3D sphere highlight
+         * and the sequence information panel. Has no effect at the first element.
          * 
-         * @returns {void} Updates current sequence position and UI
+         * @returns {void} Updates currentSequenceIndex, sphere highlight and info panel
          */
         function previous() {
             if (processedResults.length === 0) return;
@@ -1639,12 +1627,12 @@
         }
 
         /**
-         * Moves to the next step in the current Collatz sequence
+         * Moves to the next step in the current Collatz sequence.
          * 
-         * Allows users to step forward through the sequence, updating
-         * both the 3D highlighting and the sequence information display.
+         * Increments currentSequenceIndex and updates both the 3D sphere highlight
+         * and the sequence information panel. Has no effect at the last element.
          * 
-         * @returns {void} Updates current sequence position and UI
+         * @returns {void} Updates currentSequenceIndex, sphere highlight and info panel
          */
         function next() {
             if (processedResults.length === 0) return;
@@ -1656,17 +1644,15 @@
         }
 
         /**
-         * Adjusts camera position to optimally frame the current sequence
+         * Adjusts camera position to optimally frame the current user sequence.
          * 
-         * Automatically calculates the best camera distance and position based on
-         * the vertical extent of the current sequence. This ensures that sequences
-         * of different lengths are always well-framed in the viewport.
+         * Calculates the vertical extent of all spheres in extensionsGroup and
+         * positions the camera at a distance that keeps the full sequence visible.
+         * Distance is clamped between 25 and 150 units to prevent extreme positions.
          * 
-         * @param {Object} result - Processed sequence result with sphere positions
          * @returns {void} Updates camera position for optimal viewing
          */
-        
-        function adjustCameraForSequence(result) {
+        function adjustCameraForSequence() {
             let minY = Infinity;
             let maxY = -Infinity;
 
@@ -1706,10 +1692,10 @@
         }
         
         /**
-         * Zooms the camera in by moving it closer to the amphora
+         * Zooms the camera in by moving it 10% closer to the amphora.
          * 
-         * Reduces the camera distance by 10% while maintaining the current
-         * viewing angle. Includes bounds checking to prevent getting too close.
+         * Scales the camera position vector toward the origin while enforcing
+         * a minimum distance of 2 units to prevent clipping into the structure.
          * 
          * @returns {void} Updates camera position
          */
@@ -1725,10 +1711,10 @@
         }
 
         /**
-         * Zooms the camera out by moving it away from the amphora
+         * Zooms the camera out by moving it 10% further from the amphora.
          * 
-         * Increases the camera distance by 10% while maintaining the current
-         * viewing angle. Includes bounds checking to prevent going too far.
+         * Scales the camera position vector away from the origin while enforcing
+         * a maximum distance of 100 units to keep the structure visible.
          * 
          * @returns {void} Updates camera position
          */
@@ -1744,30 +1730,20 @@
         }
 
         /**
-         * Updates the rotation of both sphere groups based on current rotation values
+         * Rebuilds the info panel and sequence display for the current result and step.
          * 
-         * This function synchronizes the rotation state across all 3D objects in the amphora.
-         * It applies the current rotationX, rotationY and rotationZ values to both:
+         * Recalculates all derived values (computed steps, saved steps, sequence type,
+         * max value) and regenerates the color-coded HTML sequence display and the
+         * right-hand info panel. Called after processCollatz(), previous() and next().
          * 
-         * 1. spheresGroup - The base amphora structure (42 precomputed wormhole sequences)
-         * 2. extensionsGroup - User-input sequence overlays
-         * 
-         * By applying the same rotation to both groups, the visualization maintains
-         * spatial coherence between the static amphora structure and dynamic user sequences.
-         * This ensures that when users rotate the view, both the base structure and any
-         * overlaid sequences move together as a unified whole.
-         * 
-         * @returns {void} Updates rotation properties of 3D groups
+         * @returns {void} Updates #infoPanelContent and #sequenceDisplay DOM elements
          */
         function updateProcessedInfo() {
             const sequenceElement = document.getElementById('sequenceDisplay');
-            const dataPanelContent = document.getElementById('dataPanelContent');        
             const result = processedResults[currentResultIndex];
             const collatzData = DICTIONARY[result.entrypoint.toString()];
             const maxValue = Math.max(...result.sequence);
             const sequenceType = calculateSequenceType(result.sequence, result.entrypoint);
-            const currentValue = result.sequence[currentSequenceIndex];
-            
             const computedValues = result.entrypointIndex;
             const savedValues = result.sequence.length - result.entrypointIndex - 1;
             const steps = result.sequence.length - 1;
@@ -1787,8 +1763,8 @@
             for (let i = 0; i < result.sequence.length; i++) {
                 const value = result.sequence[i];
                 let cssClass = '';
-                let isCurrentValue = (i === currentSequenceIndex);
-                let isMaxValue = (value === maxValue);
+                const isCurrentValue = (i === currentSequenceIndex);
+                const isMaxValue = (value === maxValue);
                 
                 if (value === 1) {
                     cssClass = 'seq-one';
@@ -1871,7 +1847,7 @@
             infoPanelHTML += `<div class="info-value"><span class="type-indicator type-${sequenceType.toLowerCase()}">${sequenceType.toUpperCase()}</span></div>`;
             infoPanelHTML += '</div>';
             
-            infoPanelContent.innerHTML = infoPanelHTML;
+            document.getElementById('infoPanelContent').innerHTML = infoPanelHTML;
         }
         
         /* *******************************************************************************************************************
@@ -1882,37 +1858,32 @@
          */
 
         /**
-         * Shows the color legend modal explaining sphere color meanings
+         * Shows the color legend modal.
          * 
-         * The legend modal provides essential information for understanding
-         * the color-coded visualization system used throughout the amphora.
-         * 
-         * @returns {void} Makes legend modal visible
+         * @returns {void} Makes the #legendModal element visible
          */
         function showLegend() {
             document.getElementById('legendModal').style.display = 'block';
         }
 
         /**
-         * Hides the color legend modal
+         * Hides the color legend modal.
          * 
-         * @returns {void} Hides legend modal
+         * @returns {void} Hides the #legendModal element
          */
         function hideLegend() {
             document.getElementById('legendModal').style.display = 'none';
         }
        
         /**
-         * Sets up mouse controls for 3D camera manipulation
+         * Sets up mouse controls for 3D camera manipulation.
          * 
-         * Implements intuitive mouse controls for exploring the amphora:
-         * - Mouse drag: Rotates the view around the amphora
-         * - Mouse wheel: Zooms in/out with distance constraints
-         * - Smooth interaction with proper event handling
+         * Attaches three event listeners to the renderer canvas:
+         * - mousedown / mouseup: track drag state
+         * - mousemove: rotate the amphora by dragging (updates rotationX and rotationY)
+         * - wheel: zoom in/out, clamped between 2 and 100 units from the origin
          * 
-         * Uses global state variables to track mouse position and drag state.
-         * 
-         * @returns {void} Attaches event listeners for mouse interaction
+         * @returns {void} Attaches event listeners to renderer.domElement
          */
         function setupMouseControls() {
             renderer.domElement.addEventListener('mousedown', (event) => {
@@ -1954,12 +1925,12 @@
          */
 
         /**
-         * Handles browser window resize events
+         * Handles browser window resize events.
          * 
          * Updates the camera aspect ratio and renderer size when the browser
          * window is resized to maintain proper proportions and prevent distortion.
          * 
-         * @returns {void} Updates camera and renderer for new window size
+         * @returns {void} Updates camera projection matrix and renderer size
          */
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -1974,15 +1945,13 @@
          */
 
         /**
-         * Global click handler for modal backdrop clicks
+         * Global click handler for modal backdrop clicks.
          * 
-         * Allows users to close modals by clicking outside the content area.
-         * This provides intuitive UX behavior expected in modern web applications.
+         * Allows users to close the legend modal by clicking outside its content area,
+         * following standard web UX conventions.
          * 
-         * Attached to window.onclick in the global scope.
-         * 
-         * @param {Event} event - Click event object
-         * @returns {void} Closes appropriate modal if backdrop clicked
+         * @param {MouseEvent} event - The click event
+         * @returns {void} Closes the legend modal if the backdrop was clicked
          */
         window.onclick = function(event) {
             const legendModal = document.getElementById('legendModal');
