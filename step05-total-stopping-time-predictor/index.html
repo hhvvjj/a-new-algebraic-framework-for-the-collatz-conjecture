@@ -18,57 +18,49 @@
  * function iteratively until reaching 1.
  * 
  * ALGORITHMIC APPROACHES:
- * This tool implements four distinct algorithms:
+ * This tool implements three algorithms:
  * 
  *   • Multiplicity Algorithm: Instant calculation using pre-computed patterns
+ *       - Powers of 2 (e(m_r)=1): special case of multiplicities, σ(2^k) = k
  *   • Wormhole Algorithm: Hybrid approach leveraging known subsequences
- *   • Standard Algorithm: Traditional iterative computation
- *       - Powers of 2 Algorithm: Instant calculation for Standard where n = 2^k 
+ *   • Standard Algorithm: Traditional iterative computation (fallback)
  * 
  * EFFICIENCY:
  * These optimizations dramatically reduce computational overhead, achieving 
- * up to 100% efficiency for powers of 2, multiplicity and certain wormholes 
- * where n=e(m_r).
+ * up to 100% efficiency for multiplicities (including powers of 2) and certain
+ * wormholes where n=e(m_r).
  * 
  * PREDICTION METHODS:
  * 
  * 1. MULTIPLICITIES ALGORITHM (Section 9.2, Theorem 9.3):
- *    - For n = n₀ × 2^k where n₀ is an entry point
- *    - Formula: σ(n) = σ(n₀) + k
+ *    - For n = e(m_r) × 2^k where e(m_r) is an entry point
+ *    - Formula: σ(n) = k + τ(m_r)
  *    - Efficiency: 100% (instant calculation, no iteration)
  *    - Example: σ(48) = σ(6) + 3 = 8 + 3 = 11
+ *    - Special case: n = 2^k (e(m_r)=1, τ=0) → σ(n) = k
+ *      Example: σ(16) = log₂(16) = 4
  * 
  * 2. WORMHOLE ALGORITHM (Section 9.3, Theorem 9.7):
  *    - Computes until reaching known entry point e(m_r)
  *    - Formula: σ(n) = k + τ(m_r)
- *    - Efficiency: (saved_steps / total_steps) × 100%
+ *    - Efficiency: (τ(m_r) / total_steps) × 100%
  *    - Example: σ(27) = 16 + 95 = 111 (85.6% efficient)
  * 
- * 3.1 STANDARD ALGORITHM:
+ * 3. STANDARD ALGORITHM:
  *    - Full iterative computation (fallback method)
  *    - Used when no optimization applies
  *    - Efficiency: 0% (no steps saved)
- *    - Belongs to S(m_r = 0)
- *
- * 3.2 STANDARD ALGORITHM WHERE n IS POWERS OF 2:
- *    - For n = 2^k (pure powers of 2)
- *    - Formula: σ(n) = k
- *    - Efficiency: 100% (instant calculation, no iteration)
- *    - Example: σ(16) = log₂(16) = 4
- *    - Belongs to S(m_r = 0)
+ *    - Belongs to S(0): no repeated parameter before reaching 1
  * 
  * INTERACTIVE FEATURES:
- * 1. Input validation with clear error messages
- * 2. Real-time computation with loading indicator
- * 3. Comprehensive results display:
- *    - Algorithm used and efficiency metrics
- *    - Sequence comparison (standard vs optimized)
- *    - Strategy explanation with detailed calculations
- * 4. Color-coded visualization:
- *    - Blue: Powers of 2 (trivial case)
- *    - Yellow: Computed steps
- *    - Green: Saved steps (wormhole optimization)
- * 5. Mathematical notation and formula display
+ * - Input validation with clear error messages
+ * - Real-time computation with loading indicator
+ * - Algorithm used and efficiency metrics
+ * - Sequence comparison (standard vs optimized)
+ * - Strategy explanation with detailed calculations
+ * - Color-coded visualization:
+ *     Yellow: Computed steps
+ *     Green:  Saved steps (wormhole) / Multiplicity instant calculation
  * 
  * DICTIONARIES:
  * - MULTIPLICITIES_DICTIONARY: 28 base entry points with pre-computed lengths
@@ -186,12 +178,6 @@
             background: #45a049;
         }
 
-        button:disabled {
-            background: #4a4a4a;
-            cursor: not-allowed;
-            opacity: 0.5;
-        }
-
         .content {
             margin-top: 120px;
             margin-bottom: 120px;
@@ -291,11 +277,6 @@
             margin: 0 3px;
         }
 
-        .power-of-2-value {
-            color: #3498db;
-            font-weight: bold;
-        }
-
         .computed-value {
             color: #fdcb6e;
             font-weight: bold;
@@ -324,34 +305,6 @@
         .strategy-item {
             margin-bottom: 10px;
             padding-left: 20px;
-            position: relative;
-        }
-
-        .validation-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 25px;
-            backdrop-filter: blur(10px);
-        }
-
-        .validation-badge {
-            display: inline-block;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-
-        .validation-badge.passed {
-            background: rgba(46, 204, 113, 0.2);
-            border: 2px solid #2ecc71;
-            color: #2ecc71;
-        }
-
-        .validation-badge.failed {
-            background: rgba(231, 76, 60, 0.2);
-            border: 2px solid #e74c3c;
-            color: #e74c3c;
         }
 
         #error {
@@ -468,11 +421,6 @@
             <div class="strategy-content" id="strategyContent"></div>
         </div>
 
-        <div class="validation-section" id="validationSection" style="display: none;">
-            <div class="section-title">Wormhole Validation</div>
-            <div id="validationContent"></div>
-        </div>
-
     </div>
 
     <div class="author-info">
@@ -542,11 +490,6 @@
          * Contains pre-computed complete sequences from entry points to 1.
          * When a sequence reaches an entry point, remaining trajectory is known.
          * 
-         * @type {Object<number, {wormhole: number[], mr: number, pseudocycle: number[]}>}
-         * @property {number[]} wormhole - Complete sequence from entry point to 1
-         * @property {number} mr - The mr class value for this entry point
-         * @property {number[]} pseudocycle - The pseudocycle pair [first, second]
-         * 
          * @type {Object<number, {mr: number, wormhole: number[]}>}
          * @property {number} mr - The mr class value for this entry point
          * @property {number[]} wormhole - Complete sequence from entry point to 1
@@ -568,47 +511,59 @@
         };
 
         /**
-         * Validates that the user input is a valid number within acceptable limits.
+         * Validates that the user input is a strictly positive integer within acceptable limits.
          * 
-         * This function performs comprehensive validation of user input to ensure it meets
-         * all requirements for Collatz sequence processing. It checks for emptiness, numeric
-         * validity, positivity, and compliance with the maximum value constraint.
+         * Performs strict validation rejecting anything that is not a plain sequence of digits:
+         * decimals, scientific notation, signed values, hex, mixed strings, and whitespace-only
+         * inputs are all rejected. Leading zeros (e.g. "01") are accepted and parsed as their
+         * integer value.
          * 
          * @param {string|number} n - The user input value to validate
          * @returns {number} The validated positive integer
-         * @throws {Error} If input is empty, not a valid number, not positive, or exceeds MAX_INPUT_VALUE
+         * @throws {Error} If input is empty/whitespace, not a plain digit sequence,
+         *                 not positive, or exceeds MAX_INPUT_VALUE
          * 
          * @example
-         * validateInput(27)      // Returns: 27
-         * validateInput("100")   // Returns: 100
-         * validateInput("")      // Throws: "Input cannot be empty"
-         * validateInput(-5)      // Throws: "n must be positive"
-         * validateInput(2**51)   // Throws: "n too large (limit: 1125899906842624)"
+         * validateInput("27")     // Returns: 27
+         * validateInput("01")     // Returns: 1  (leading zero accepted)
+         * validateInput("")       // Throws: "Input cannot be empty"
+         * validateInput(" ")      // Throws: "Input cannot be empty"
+         * validateInput("6.9")    // Throws: "Input must be a positive integer"
+         * validateInput("1e3")    // Throws: "Input must be a positive integer"
+         * validateInput("6abc")   // Throws: "Input must be a positive integer"
+         * validateInput("+6")     // Throws: "Input must be a positive integer"
+         * validateInput("0x10")   // Throws: "Input must be a positive integer"
+         * validateInput("0")      // Throws: "n must be positive (greater than 0)"
+         * validateInput("-5")     // Throws: "Input must be a positive integer"
+         * validateInput(2**51)    // Throws: "n too large (limit: 1125899906842624)"
          */
         function validateInput(n) {
-            // Check if input is empty or null
-            if (!n || n === '') {
+            // Check if input is empty or whitespace only
+            if (!n || String(n).trim() === '') {
                 throw new Error("Input cannot be empty");
             }
-            
-            // Convert to integer
-            const num = parseInt(n);
-            
-            // Verify it is a valid number
-            if (isNaN(num)) {
-                throw new Error("Input must be a valid number");
+
+            const str = String(n).trim();
+
+            // Reject anything that is not a plain sequence of digits
+            // (decimals, scientific notation, signs, hex, underscores, mixed strings)
+            if (!/^\d+$/.test(str)) {
+                throw new Error("Input must be a positive integer");
             }
-            
-            // Verify it is positive
+
+            // Parse as base-10 integer (safe after regex)
+            const num = parseInt(str, 10);
+
+            // Verify it is strictly positive (rejects 0 and leading-zero strings like "00")
             if (num <= 0) {
-                throw new Error("n must be positive");
+                throw new Error("n must be positive (greater than 0)");
             }
-            
+
             // Verify it does not exceed the maximum limit
             if (num > MAX_INPUT_VALUE) {
                 throw new Error(`n too large (limit: ${MAX_INPUT_VALUE})`);
             }
-            
+
             return num;
         }
 
@@ -638,35 +593,35 @@
         }
 
         /**
-        * Checks if a number is a power of 2 using bitwise operation.
-        * 
-        * Uses the bitwise trick: a number n is a power of 2 if and only if
-        * n > 0 and (n & (n-1)) === 0. This works because powers of 2 have
-        * exactly one bit set in their binary representation.
-        * 
-        * Binary examples:
-        * 8 (binary: 1000) & 7 (binary: 0111) = 0 → true
-        * 16 (binary: 10000) & 15 (binary: 01111) = 0 → true
-        * 6 (binary: 0110) & 5 (binary: 0101) = 0100 ≠ 0 → false
-        * 
-        * ROBUSTNESS:
-        * The function handles both string and number inputs by converting to integer.
-        * This prevents type-related bugs when n comes from DOM elements or user input.
-        * 
-        * @param {number|string} n - The number to check (accepts both types)
-        * @returns {boolean} True if n is a power of 2, false otherwise
-        * 
-        * @example
-        * isPowerOf2(8)      // Returns: true  (2³)
-        * isPowerOf2("8")    // Returns: true  (handles string)
-        * isPowerOf2(16)     // Returns: true  (2⁴)
-        * isPowerOf2("512")  // Returns: true  (2⁹)
-        * isPowerOf2(6)      // Returns: false
-        * isPowerOf2("6")    // Returns: false
-        * isPowerOf2(1)      // Returns: true  (2⁰)
-        * isPowerOf2(0)      // Returns: false
-        * isPowerOf2("abc")  // Returns: false (NaN handling)
-        */
+         * Checks if a number is a power of 2 using bitwise operation.
+         * 
+         * Uses the bitwise trick: a number n is a power of 2 if and only if
+         * n > 0 and (n & (n-1)) === 0. This works because powers of 2 have
+         * exactly one bit set in their binary representation.
+         * 
+         * Binary examples:
+         * 8 (binary: 1000) & 7 (binary: 0111) = 0 → true
+         * 16 (binary: 10000) & 15 (binary: 01111) = 0 → true
+         * 6 (binary: 0110) & 5 (binary: 0101) = 0100 ≠ 0 → false
+         * 
+         * ROBUSTNESS:
+         * The function handles both string and number inputs by converting to integer.
+         * This prevents type-related bugs when n comes from DOM elements or user input.
+         * 
+         * @param {number|string} n - The number to check (accepts both types)
+         * @returns {boolean} True if n is a power of 2, false otherwise
+         * 
+         * @example
+         * isPowerOf2(8)      // Returns: true  (2³)
+         * isPowerOf2("8")    // Returns: true  (handles string)
+         * isPowerOf2(16)     // Returns: true  (2⁴)
+         * isPowerOf2("512")  // Returns: true  (2⁹)
+         * isPowerOf2(6)      // Returns: false
+         * isPowerOf2("6")    // Returns: false
+         * isPowerOf2(1)      // Returns: true  (2⁰)
+         * isPowerOf2(0)      // Returns: false
+         * isPowerOf2("abc")  // Returns: false (NaN handling)
+         */
         function isPowerOf2(n) {
             // Convert to integer if string, handle edge cases
             const num = typeof n === 'string' ? parseInt(n, 10) : n;
@@ -683,7 +638,7 @@
         /**
          * Calculates the stopping time using the MULTIPLICITIES algorithm (instant calculation).
          * 
-         * This is the SECOND MOST EFFICIENT method when applicable, achieving 100% efficiency by
+         * This is the MOST EFFICIENT method when applicable, achieving 100% efficiency by
          * avoiding ALL computation through pre-calculated values.
          * 
          * CONCEPT:
@@ -695,26 +650,25 @@
          * one Collatz iteration).
          * 
          * ALGORITHM:
-         * 1. Check if n is divisible by any dictionary index
-         * 2. Verify that n/index is a power of 2 (ratio = 2^k)
-         * 3. Calculate: total_stopping_time = log₂(ratio) + tau_mr
+         * 1. Check if n is a pure power of 2 (special case: e(m_r)=1, S(0))
+         * 2. Otherwise, check if n is divisible by any dictionary index
+         * 3. Verify that n/index is a power of 2 (ratio = 2^k)
+         * 4. Calculate: total_stopping_time = log₂(ratio) + tau_mr
          * 
          * IMPORTANT: Iterates entries in descending order (largest index first) to ensure
-         * correct classification when an index is a multiple of another (e.g., e(mr)=6 vs e(mr)=3)
-         * .
+         * correct classification when an index is a multiple of another (e.g., e(mr)=6 vs e(mr)=3).
+         * 
          * @param {number} n - The number to analyze (must be positive integer)
          * @returns {Object|null} Result object if multiplicity found, null otherwise
          * 
          * @returns {Object} result - The multiplicity calculation result
          * @returns {number} result.total_stopping_time - The calculated stopping time
          * @returns {string} result.algorithm - Always "multiplicity"
-         * @returns {string} result.prediction_type - Always "multiplicity_found"
-         * @returns {number} result.index_used - Which dictionary index was used
+         * @returns {number} result.index_used - Which dictionary index was used (1 for powers of 2)
          * @returns {number} result.ratio - n/index (always a power of 2)
-         * @returns {number} result.tau_mr - Pre-calculated length for the index
+         * @returns {number} result.tau_mr - Pre-calculated length for the index (0 for powers of 2)
          * @returns {number} result.analytical_steps - log₂(ratio)
-         * @returns {number} result.mr_value - The mr class value
-         * @returns {number} result.n - The input value (for reference)
+         * @returns {number} result.mr_value - The mr class value (0 for powers of 2)
          * 
          * @example
          * // n = 48, index = 6, ratio = 8 = 2³
@@ -722,87 +676,72 @@
          * // Returns: {
          * //   total_stopping_time: 11,  // tau_mr(6) + 3 = 8 + 3
          * //   algorithm: "multiplicity",
-         * //   prediction_type: "multiplicity_found",
          * //   index_used: 6,
          * //   ratio: 8,
          * //   tau_mr: 8,
          * //   analytical_steps: 3,
-         * //   mr_value: 2,
-         * //   n: 48
+         * //   mr_value: 2
+         * // }
+         * 
+         * // n = 16 = 2^4 (pure power of 2, special case e(m_r)=1)
+         * calculateMultiplicityStoppingTime(16)
+         * // Returns: {
+         * //   total_stopping_time: 4,
+         * //   algorithm: "multiplicity",
+         * //   index_used: 1,
+         * //   ratio: 16,
+         * //   tau_mr: 0,
+         * //   analytical_steps: 4,
+         * //   mr_value: 0
          * // }
          * 
          * calculateMultiplicityStoppingTime(27)  // Returns: null (not a multiplicity)
          */
         function calculateMultiplicityStoppingTime(n) {
 
-            // FAST-PATH: Pure powers of 2 (n = 2^k, where e(m_r)=1)
-            // σ(2^k) = k, η=1 (no iteration required)
+            // Powers of 2: special case where e(m_r)=1, σ(2^k)=k, η=1
             if (isPowerOf2(n)) {
                 const k = Math.log2(n);
                 return {
                     total_stopping_time: k,
                     algorithm: "multiplicity",
-                    prediction_type: "multiplicity_found",
                     index_used: 1,
                     ratio: n,
                     tau_mr: 0,
                     analytical_steps: k,
-                    mr_value: 0,
-                    n: n
+                    mr_value: 0
                 };
             }
 
-            // Iterate through all indices in the multiplicities dictionary
             for (const [index, data] of Object.entries(MULTIPLICITIES_DICTIONARY).sort((a, b) => b[0] - a[0])) {
                 const idx = parseInt(index);
 
-                // Check if n is divisible by this index
                 if (n % idx === 0) {
-
-                    // Calculate additional steps as log2(ratio)
                     const ratio = n / idx;
                     if (isPowerOf2(ratio)) {
                         const analyticalSteps = Math.log2(ratio);
-
-                        // Total stopping time = additional steps + tau_mr
                         const totalStoppingTime = analyticalSteps + data.tau_mr;
                         
-                        // Return the result object
                         return {
                             total_stopping_time: totalStoppingTime,
                             algorithm: "multiplicity",
-                            prediction_type: "multiplicity_found",
                             index_used: idx,
                             ratio: ratio,
                             tau_mr: data.tau_mr,
                             analytical_steps: analyticalSteps,
-                            n: n,
                             mr_value: data.mr
                         };
                     }
                 }
             }
 
-            // No multiplicity pattern found
             return null;
         }
 
         /**
          * Generates the complete standard Collatz sequence from n to 1 (brute-force method).
-         * 
-         * This is the traditional iterative method without any optimizations. It applies
-         * the Collatz function repeatedly until reaching 1, storing each intermediate value.
-         * 
-         * PROCESS:
-         * 1. Start with n
-         * 2. Apply Collatz rules: if even → n/2, if odd → 3n+1
-         * 3. Continue until reaching 1
-         * 4. Return the complete sequence including 1
-         * 
-         * SAFETY:
-         * Includes a safeguard against infinite loops by limiting iterations to
-         * MAX_COMPUTATION_STEPS (10,000). This prevents the function from hanging
-         * on potentially divergent sequences.
+         * Applies the Collatz function repeatedly until reaching 1, with a safety
+         * limit of MAX_COMPUTATION_STEPS to prevent infinite loops.
          * 
          * @param {number} n - The starting number (must be positive integer)
          * @returns {Array<number>} Array containing the complete sequence from n to 1
@@ -810,35 +749,26 @@
          * 
          * @example
          * generateStandardSequence(6)
-         * // Returns: [6, 3, 10, 5, 16, 8, 4, 2, 1]
-         * // Steps = sequence.length - 1 = 8
+         * // Returns: [6, 3, 10, 5, 16, 8, 4, 2, 1]  (8 steps)
          * 
          * generateStandardSequence(27)
-         * // Returns: [27, 82, 41, ..., 4, 2, 1]
-         * // Steps = 111
-         * 
-         * generateStandardSequence(1)
-         * // Returns: [1]
-         * // Steps = 0
+         * // Returns: [27, 82, 41, ..., 4, 2, 1]  (111 steps)
          */
         function generateStandardSequence(n) {
-            const sequence = [];      // Array to store the sequence
-            let current = n;          // Start with the input number
-            let steps = 0;            // Counter for safety limit
+            const sequence = [];
+            let current = n;
+            let steps = 0;
             
-            // Continue until we reach 1
             while (current !== 1 && steps < MAX_COMPUTATION_STEPS) {
-                sequence.push(current);              // Add current number to sequence
-                current = nextCollatzValue(current); // Calculate next value
-                steps++;                             // Increment step counter
+                sequence.push(current);
+                current = nextCollatzValue(current);
+                steps++;
             }
             
-            // Safety check: throw error if computation is too long
             if (steps >= MAX_COMPUTATION_STEPS) {
                 throw new Error(`Sequence too long for n=${n}`);
             }
             
-            // Add the final 1 to the sequence
             sequence.push(1);
             return sequence;
         }
@@ -856,30 +786,22 @@
          * 
          * RETURN VALUE TYPES:
          * 
-         * POWER OF 2 RESULT (highest priority, most trivial):
-         * - total_stopping_time: log₂(n)
-         * - algorithm: "power_of_2"
-         * - prediction_type: "power_of_2"
-         * - Additional fields: exponent, mr_value (always 0)
-         * 
-         * MULTIPLICITY RESULT (second priority):
+         * MULTIPLICITY RESULT (highest priority, includes powers of 2 as special case e(m_r)=1):
          * - total_stopping_time: calculated instantly via formula
          * - algorithm: "multiplicity"
-         * - prediction_type: "multiplicity_found"
-         * - Additional fields: index_used, ratio, tau_mr, analytical_steps, mr_value
+         * - Additional fields: index_used (1 for powers of 2), ratio, tau_mr,
+         *   analytical_steps, mr_value (0 for powers of 2)
          * 
          * WORMHOLE RESULT (entry point found):
          * - total_stopping_time: computed_steps + tau_mr
          * - algorithm: "wormhole"
-         * - prediction_type: "entry_point_found"
-         * - Additional fields: entry_point_found, entry_point_position, computed_steps,
-         *   tau_mr, wormhole_length, mr_value
+         * - Additional fields: entry_point_found, computed_steps,
+         *   tau_mr, mr_value
          * 
          * STANDARD RESULT (no optimization available):
          * - total_stopping_time: fully computed via iteration
-         * - algorithm: "wormhole"
-         * - prediction_type: "no_entry_point" or "trivial"
-         * - Additional fields: computed_steps, saved_steps (0)
+         * - algorithm: "standard"
+         * - Additional fields: computed_steps, tau_mr (always 0)
          * 
          * @param {number} n - The number to analyze (must be positive integer)
          * @returns {Object} Result object with stopping time and method details
@@ -887,166 +809,99 @@
          * 
          * @example
          * calculateOptimizedStoppingTime(16)
-         * // Returns: { total_stopping_time: 4, algorithm: "power_of_2", exponent: 4, ... }
+         * // Returns: { total_stopping_time: 4, algorithm: "multiplicity",
+         * //            index_used: 1, ratio: 16, tau_mr: 0, analytical_steps: 4, mr_value: 0 }
          * 
          * calculateOptimizedStoppingTime(48)
-         * // Returns: { total_stopping_time: 11, algorithm: "multiplicity", ... }
+         * // Returns: { total_stopping_time: 11, algorithm: "multiplicity",
+         * //            index_used: 6, ratio: 8, tau_mr: 8, analytical_steps: 3, mr_value: 2 }
          * 
          * calculateOptimizedStoppingTime(27)
          * // Returns: { total_stopping_time: 111, algorithm: "wormhole",
-         * //           prediction_type: "entry_point_found", computed_steps: 16,
-         * //           saved_steps: 95, entry_point_found: 121, ... }
+         * //           computed_steps: 16, tau_mr: 95, entry_point_found: 121, mr_value: 60 }
          * 
          * calculateOptimizedStoppingTime(31)
-         * // Returns: { total_stopping_time: 106, algorithm: "wormhole",
-         * //           prediction_type: "no_entry_point", computed_steps: 106,
-         * //           saved_steps: 0 }
+         * // Returns: { total_stopping_time: 106, algorithm: "standard",
+         * //           computed_steps: 106, tau_mr: 0, mr_value: 0 }
          */
         function calculateOptimizedStoppingTime(n) {
 
-            // PRIORITY 1: Try multiplicities algorithm (includes powers of 2 as special case)
+            // Priority 1: multiplicities (includes powers of 2 as special case)
             const multiplicityResult = calculateMultiplicityStoppingTime(n);
             if (multiplicityResult !== null) {
                 return multiplicityResult;
             }
             
-            // TRIVIAL CASE: n = 1 (already handled by power of 2, but kept for safety)
-            if (n === 1) {
-                return {
-                    total_stopping_time: 0,
-                    algorithm: "wormhole",
-                    prediction_type: "trivial",
-                    computed_steps: 0,
-                    saved_steps: 0
-                };
-            }
-            
-            // PRIORITY 2: Use wormhole algorithm (hybrid approach)
+            // Priority 2: wormhole — iterate until an entry point or 1 is reached
             let current = n;
             let steps = 0;
             
-            // Compute sequence until we find a wormhole or reach 1
             while (current !== 1) {
-                // CHECK: Is this a wormhole entry point?
                 if (WORMHOLES_DICTIONARY[current]) {
                     const wormholeSeq = WORMHOLES_DICTIONARY[current].wormhole;
                     const tau_mr = wormholeSeq.length - 1;
-                    const totalSteps = steps + tau_mr;
-                    
-                    // Return wormhole result
                     return {
-                        total_stopping_time: totalSteps,
+                        total_stopping_time: steps + tau_mr,
                         algorithm: "wormhole",
-                        prediction_type: "entry_point_found",
                         entry_point_found: current,
-                        entry_point_position: steps,
                         computed_steps: steps,
                         tau_mr: tau_mr,
-                        wormhole_length: wormholeSeq.length,
                         mr_value: WORMHOLES_DICTIONARY[current].mr
                     };
                 }
                 
-                // No wormhole yet, continue computing
                 current = nextCollatzValue(current);
                 steps++;
                 
-                // Safety check: prevent infinite loops
                 if (steps > MAX_COMPUTATION_STEPS) {
                     throw new Error(`Exceeded ${MAX_COMPUTATION_STEPS} steps`);
                 }
             }
             
-            // PRIORITY 3: Reached 1 without finding any optimization (WORST CASE)
+            // Priority 3: standard — no optimization available
             return {
                 total_stopping_time: steps,
-                algorithm: "wormhole",
-                prediction_type: "no_entry_point",
+                algorithm: "standard",
                 computed_steps: steps,
-                saved_steps: 0
+                tau_mr: 0,
+                mr_value: 0
             };
         }
 
         /**
          * Main processing function triggered when user clicks "Process" button.
+         * Validates input, computes the standard and optimized sequences, and
+         * delegates to displayResults. Uses setTimeout to keep the UI responsive
+         * during heavy computation. Validation errors are shown immediately;
+         * computation errors after the async step.
          * 
-         * Orchestrates the entire workflow from user input to results display.
-         * This function coordinates validation, computation, and UI updates while
-         * handling errors gracefully.
-         * 
-         * WORKFLOW:
-         * 1. Clear any previous errors from the display
-         * 2. Validate user input (check for valid number, positive, within limits)
-         * 3. Show loading indicator to provide user feedback
-         * 4. Generate standard sequence (for comparison purposes)
-         * 5. Calculate optimized result (tries powers of 2, then multiplicities, then wormholes)
-         * 6. Display all results (info cards, sequences, strategy explanation)
-         * 
-         * ERROR HANDLING:
-         * - Input validation errors: shown immediately before computation
-         * - Computation errors: shown after attempting calculation
-         * 
-         * UI UPDATES:
-         * - Shows/hides error div based on validation/computation results
-         * - Shows/hides content div to display results
-         * - Updates all result displays via specialized display functions
-         * 
-         * ASYNC PATTERN:
-         * Uses setTimeout to allow UI to update before heavy computation begins,
-         * preventing the interface from freezing during long calculations.
-         * 
-         * @returns {void} No return value; updates DOM directly
-         * 
-         * @example
-         * // User enters 27 and clicks "Process"
-         * processNumber()
-         * // → Validates input
-         * // → Shows loading
-         * // → Computes sequences
-         * // → Displays results with efficiency metrics
-         * 
-         * // User enters invalid input
-         * processNumber()
-         * // → Shows error message
-         * // → Does not proceed to computation
+         * @returns {void}
          */
         function processNumber() {
-            // Get DOM elements
             const errorDiv = document.getElementById('error');
-
-            // Clear previous errors
             errorDiv.style.display = 'none';
             errorDiv.innerHTML = '';
             
             const input = document.getElementById('numberInput');
             
             try {
-                // STEP 1: Validate input
                 const n = validateInput(input.value);
                 
-                // STEP 2: Update UI with input value
                 document.getElementById('inputValue').textContent = n;
                 
-                // STEP 3: Show loading indicator
                 const content = document.getElementById('content');
                 const infoGrid = document.getElementById('infoGrid');
                 
                 infoGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px;"><div class="loading">Processing</div></div>';
                 content.classList.add('active');
                 
-                // STEP 4: Perform calculations after UI updates (setTimeout)
-                // This prevents UI from freezing during heavy computation
+                // setTimeout allows the loading indicator to render before heavy computation
                 setTimeout(() => {
                     try {
-                        // Generate standard sequence (for comparison)
                         const standardSequence = generateStandardSequence(n);
-                        // Calculate optimized result
                         const optimizedResult = calculateOptimizedStoppingTime(n);
-                        
-                        // STEP 5: Display all results
                         displayResults(n, standardSequence, optimizedResult);
                     } catch (error) {
-                        // Computation error occurred
                         errorDiv.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
                         errorDiv.style.display = 'block';
                         content.classList.remove('active');
@@ -1054,52 +909,22 @@
                 }, 100);
                 
             } catch (error) {
-                // Validation error occurred
                 errorDiv.innerHTML = `<div class="error-message">${error.message}</div>`;
                 errorDiv.style.display = 'block';
             }
         }
 
         /**
-         * Master display function that coordinates all result visualizations.
-         * 
-         * This function acts as a coordinator, delegating to specialized display functions
-         * in the correct order. It ensures a consistent presentation of results across
-         * all three main visualization areas.
-         * 
-         * DISPLAY ORDER:
-         * 1. Info cards - Key metrics and statistics (algorithm used, stopping times, efficiency)
-         * 2. Sequences - Standard vs Optimized comparison with visual color coding
-         * 3. Strategy - Explanation of optimization method used
-         * 
-         * DESIGN PATTERN:
-         * This is a facade pattern that simplifies the complex process of displaying
-         * multiple related result sections. It ensures all displays receive consistent
-         * data and are updated in the proper sequence.
+         * Coordinates all result visualizations in the correct display order:
+         * info cards, sequence comparison, and strategy explanation.
          * 
          * @param {number} n - The input number
          * @param {Array<number>} standardSequence - The complete standard Collatz sequence
          * @param {Object} optimizedResult - The result from calculateOptimizedStoppingTime
-         * @returns {void} No return value; delegates to display functions
-         * 
-         * @example
-         * const n = 27;
-         * const standardSeq = [27, 82, 41, ..., 1];
-         * const optimized = {
-         *   total_stopping_time: 111,
-         *   algorithm: "wormhole",
-         *   prediction_type: "entry_point_found",
-         *   computed_steps: 16,
-         *   saved_steps: 95
-         * };
-         * 
-         * displayResults(n, standardSeq, optimized);
-         * // → Updates info cards with metrics
-         * // → Shows sequence comparison
-         * // → Explains wormhole strategy used
+         * @returns {void}
          */
         function displayResults(n, standardSequence, optimizedResult) {
-            displayInfoCards(optimizedResult, n);
+            displayInfoCards(optimizedResult);
             displaySequences(n, standardSequence, optimizedResult);
             displayStrategy(optimizedResult, n);
         }
@@ -1107,136 +932,47 @@
         /**
          * Displays the information cards showing key metrics and statistics.
          * 
-         * Creates a grid of cards presenting the analysis results in an organized,
-         * visually distinct format. Each card highlights a specific metric with
-         * appropriate color coding to indicate the algorithm type and efficiency.
-         * 
-         * ALGORITHM CLASSIFICATION:
-         * The function handles three main algorithms:
-         * 
-         * 1. MULTIPLICITIES (η=1, 100% efficiency)
-         *    - Instant calculation using pre-computed patterns
-         *    - Two subcases:
-         *      a) General: n = e(m_r) × 2^k, e(m_r) > 1
-         *         - computed steps: 0, saved steps: σ(n)
-         *      b) Powers of 2: n = 2^k (e(m_r)=1, τ=0)
-         *         - computed steps: 0, saved steps: σ(n)
-         *         - Formula: σ(2^k) = k
-         * 
-         * 2. WORMHOLE (η=τ(m_r)/σ(n), variable efficiency)
-         *    - Entry point found: hybrid calculation
-         *    - computed steps: k (steps iterated to reach e(m_r))
-         *    - saved steps: τ(m_r)
-         *    - η = τ(m_r)/σ(n) = 1 - k/σ(n)
-         * 
-         * 3. STANDARD (η=0, 0% efficiency)
-         *    - No optimization available
-         *    - computed steps: σ(n), saved steps: 0
-         * 
-         * EFFICIENCY DEFINITION (aligned with paper):
-         * η = 1 - k/σ(n) where k are the iterated steps:
-         *    Multiplicities: k=0 (k obtained analytically) → η=1
-         *    Wormholes:      k=steps to e(m_r)             → η=τ(m_r)/σ(n)
-         *    Standard:       k=σ(n)                         → η=0
-         * 
          * @param {Object} result - The optimized result object
          * @param {number} result.total_stopping_time - Total steps to reach 1
-         * @param {string} result.algorithm - "multiplicity" or "wormhole"
-         * @param {string} result.prediction_type - "multiplicity_found", "entry_point_found", or "no_entry_point"
-         * @param {number} [result.index_used] - Which dictionary index was used (1 indicates powers of 2, S(0) case)
+         * @param {string} result.algorithm - "multiplicity", "wormhole", or "standard"
+         * @param {number} [result.index_used] - Which dictionary index was used (1 for powers of 2)
          * @param {number} [result.computed_steps] - Steps actually iterated
-         * @param {number} [result.saved_steps] - Steps saved via dictionary
+         * @param {number} [result.tau_mr] - τ(m_r): saved steps from dictionary (0 for standard)
          * @param {number} [result.mr_value] - The mr class value
-         * @param {number} n - The input number
-         * @returns {void} Updates the DOM element with id 'infoGrid'
+         * @returns {void}
          * 
-         * @example
-         * // POWER OF 2 CASE (e(m_r)=1, special multiplicity)
-         * displayInfoCards({
-         *   total_stopping_time: 9,
-         *   algorithm: "multiplicity",
-         *   prediction_type: "multiplicity_found",
-         *   index_used: 1,
-         *   tau_mr: 0,
-         *   analytical_steps: 9,
-         *   mr_value: 0
-         * }, 512);
-         * // → Shows: Algorithm=Multiplicity S(0), Total=9, Computed=0, Saved=9, mr=0, η=1
-         * 
-         * // GENERAL MULTIPLICITY CASE
-         * displayInfoCards({
-         *   total_stopping_time: 11,
-         *   algorithm: "multiplicity",
-         *   prediction_type: "multiplicity_found",
-         *   index_used: 6,
-         *   tau_mr: 8,
-         *   analytical_steps: 3,
-         *   mr_value: 2
-         * }, 48);
-         * // → Shows: Algorithm=Multiplicity, Total=11, Computed=0, Saved=11, mr=2, η=1
-         * 
-         * // WORMHOLE CASE
-         * displayInfoCards({
-         *   total_stopping_time: 111,
-         *   algorithm: "wormhole",
-         *   prediction_type: "entry_point_found",
-         *   computed_steps: 16,
-         *   saved_steps: 95,
-         *   mr_value: 60
-         * }, 27);
-         * // → Shows: Algorithm=Wormhole, Total=111, Computed=16, Saved=95, mr=60, η=0.8559
-         * 
-         * // STANDARD CASE
-         * displayInfoCards({
-         *   total_stopping_time: 17,
-         *   algorithm: "wormhole",
-         *   prediction_type: "no_entry_point",
-         *   computed_steps: 17,
-         *   saved_steps: 0
-         * }, 93);
-         * // → Shows: Algorithm=Standard, Total=17, Computed=17, Saved=0, mr=0, η=0
+         * @description
+         * Efficiency η = 1 - k/σ(n), where k are the iterated steps:
+         *   Multiplicities: k=0 (obtained analytically) → η=1
+         *   Wormholes:      k=steps to e(m_r)           → η=τ(m_r)/σ(n)
+         *   Standard:       k=σ(n)                       → η=0
          */
-        function displayInfoCards(result, n) {
+        function displayInfoCards(result) {
             const infoGrid = document.getElementById('infoGrid');
             
-            // Determine algorithm name for display
             let algorithm;
-            
             if (result.algorithm === 'multiplicity') {
-                // Powers of 2 are special multiplicities with e(m_r)=1
-                algorithm = result.index_used === 1 
-                    ? 'Multiplicity S(0)' 
+                algorithm = result.index_used === 1
+                    ? 'Multiplicity S(0)'
                     : 'Multiplicity';
             } else if (result.algorithm === 'wormhole') {
-                algorithm = result.prediction_type === 'entry_point_found' 
-                    ? 'Wormhole' 
-                    : 'Standard';
+                algorithm = 'Wormhole';
             } else {
                 algorithm = 'Standard';
             }
 
-            // Determine mr value for display
-            const mrValue = result.mr_value !== undefined ? result.mr_value : 
-                (result.prediction_type === 'no_entry_point' || result.prediction_type === 'trivial' ? 0 : 'N/A');
+            const mrValue = result.mr_value;
             
-            // Calculate computed/saved steps and efficiency η = 1 - k/σ(n)
             let computedSteps, savedSteps, efficiency;
-            
             if (result.algorithm === 'multiplicity') {
-                // Multiplicities: k=0 (obtained analytically), η=1
                 computedSteps = 0;
                 savedSteps = result.total_stopping_time;
                 efficiency = '100.0';
             } else {
-                // Wormhole or Standard
-                computedSteps = result.computed_steps || 0;
-                savedSteps = result.saved_steps || 0;
-                efficiency = result.total_stopping_time > 0
-                    ? ((1 - computedSteps / result.total_stopping_time) * 100).toFixed(1)
-                    : '0.0';
+                computedSteps = result.computed_steps;
+                savedSteps = result.tau_mr;
+                efficiency = ((1 - computedSteps / result.total_stopping_time) * 100).toFixed(1);
             }
-
-            // Generate HTML for all info cards
             infoGrid.innerHTML = `
                 <div class="info-card">
                     <div class="info-label">Algorithm Used</div>
@@ -1267,76 +1003,20 @@
 
         /**
          * Displays side-by-side comparison of standard vs optimized sequences.
-         * 
-         * Shows the actual number sequences with visual color coding to distinguish
-         * between different optimization types and computed vs saved steps.
-         * The display adapts based on which optimization algorithm was used.
-         * 
-         * DISPLAY MODES:
-         * 
-         * 0. POWER OF 2 MODE:
-         *    - Standard sequence: shown in full
-         *    - Optimized: shows "Pure power of 2" message with blue color
-         *    - Explains the trivial trajectory (successive divisions by 2)
-         *    - No intermediate computation needed
-         * 
-         * 1. MULTIPLICITY MODE:
-         *    - Standard sequence: shown in full
-         *    - Optimized: shows "Direct calculation" message (no sequence needed)
-         *    - No color coding (instant calculation, no iteration)
-         * 
-         * 2. WORMHOLE MODE (entry point found):
-         *    - Standard sequence: shown in full
-         *    - Optimized sequence: split into two color-coded parts:
-         *      a) Computed part (yellow #fdcb6e): manually calculated steps
-         *      b) Wormhole part (green #2ecc71): saved steps from dictionary
-         *    - Legend: shows color coding explanation
-         * 
-         * 3. STANDARD MODE (no optimization):
-         *    - Standard sequence: shown in full
-         *    - Message: indicates full computation was required
-         *    - No color coding (no optimization available)
-         * 
-         * VISUAL ELEMENTS:
-         * - Arrow symbols (→) between numbers for readability
-         * - Color coding: blue for powers of 2, yellow for computed, green for saved
-         * - Element and step counts in labels
-         * - Interactive legend for wormhole mode
+         * Color coding: yellow (#fdcb6e) for computed steps, green (#2ecc71) for
+         * wormhole steps. Multiplicity results show a direct-calculation message;
+         * standard results show a no-optimization message.
          * 
          * @param {number} n - The input number
          * @param {Array<number>} standardSeq - Complete standard Collatz sequence
          * @param {Object} optimizedResult - The optimized result object
-         * @param {string} optimizedResult.algorithm - "power_of_2", "multiplicity" or "wormhole"
-         * @param {string} optimizedResult.prediction_type - Type of prediction
-         * @param {number} [optimizedResult.exponent] - Exponent for power of 2
-         * @param {number} [optimizedResult.entry_point_position] - Position where wormhole was found
+         * @param {string} optimizedResult.algorithm - "multiplicity", "wormhole", or "standard"
          * @param {number} [optimizedResult.entry_point_found] - Value that triggered wormhole
-         * @returns {void} Updates the DOM element with id 'sequenceDisplay'
-         * 
-         * @example
-         * displaySequences(16, [16, 8, 4, 2, 1], {
-         *   algorithm: "power_of_2",
-         *   prediction_type: "power_of_2",
-         *   exponent: 4,
-         *   total_stopping_time: 4
-         * });
-         * // → Shows standard sequence in white
-         * // → Shows "Pure power of 2: 16 = 2^4" message in blue
-         * 
-         * displaySequences(27, [27, 82, ..., 1], {
-         *   algorithm: "wormhole",
-         *   prediction_type: "entry_point_found",
-         *   entry_point_position: 16,
-         *   entry_point_found: 121
-         * });
-         * // → Shows standard sequence in white
-         * // → Shows optimized with 16 yellow steps, then green wormhole
-         * // → Displays legend explaining colors
+         * @returns {void}
          */
         function displaySequences(n, standardSeq, optimizedResult) {
             const display = document.getElementById('sequenceDisplay');
             
-            // ALWAYS show standard sequence first
             let html = `
                 <div class="sequence-row">
                     <div class="sequence-label">Standard Sequence (${standardSeq.length} elements, ${standardSeq.length - 1} steps):</div>
@@ -1348,18 +1028,7 @@
                 </div>
             `;
             
-            // CASE 0: POWER OF 2 algorithm was used
-            if (optimizedResult.algorithm === 'power_of_2') {
-                html += `
-                    <div class="sequence-row">
-                        <div class="sequence-label">Optimized Sequence:</div>
-                        <div class="sequence-values">
-                            <span style="color: #3498db;">Pure power of 2: ${n} = 2<sup>${optimizedResult.exponent}</sup> reaches 1 via ${optimizedResult.total_stopping_time} successive divisions by 2 (${optimizedResult.total_stopping_time + 1} elements, ${optimizedResult.total_stopping_time} steps)</span>
-                        </div>
-                    </div>
-                `;
-            // CASE 1: MULTIPLICITY algorithm was used
-            } else if (optimizedResult.algorithm === 'multiplicity') {
+            if (optimizedResult.algorithm === 'multiplicity') {
                 html += `
                     <div class="sequence-row">
                         <div class="sequence-label">Optimized Sequence:</div>
@@ -1368,23 +1037,19 @@
                         </div>
                     </div>
                 `;
-            // CASE 2: WORMHOLE entry point was found
-            } else if (optimizedResult.prediction_type === 'entry_point_found') {
-                const entryPos = optimizedResult.entry_point_position;
+            } else if (optimizedResult.algorithm === 'wormhole') {
+                const entryPos = optimizedResult.computed_steps;
                 const entryPoint = optimizedResult.entry_point_found;
 
-                // Build the COMPUTED part (before wormhole)
+                // Build the computed part (steps iterated before reaching the entry point)
                 const computedPart = [];
                 let current = n;
                 for (let i = 0; i <= entryPos; i++) {
                     computedPart.push(current);
-                    if (current !== 1) {
-                        current = nextCollatzValue(current);
-                    }
+                    current = nextCollatzValue(current);
                 }
                 
-                // Get the WORMHOLE part (pre-calculated sequence)
-                // slice(1) because first element is already in computedPart
+                // slice(1): entry point is already the last element of computedPart
                 const wormholePart = WORMHOLES_DICTIONARY[entryPoint].wormhole.slice(1);
                 
                 html += `
@@ -1394,7 +1059,7 @@
                             ${computedPart.map((num, i) => 
                                 `<span class="sequence-num" style="color: #fdcb6e;">${num}</span>${i < computedPart.length - 1 ? '<span class="arrow">→</span>' : ''}`
                             ).join('')}
-                            ${wormholePart.length > 0 ? '<span class="arrow">→</span>' : ''}
+                            <span class="arrow">→</span>
                             ${wormholePart.map((num, i) => 
                                 `<span class="sequence-num" style="color: #2ecc71;">${num}</span>${i < wormholePart.length - 1 ? '<span class="arrow">→</span>' : ''}`
                             ).join('')}
@@ -1411,7 +1076,6 @@
                         </div>
                     </div>
                 `;
-            // CASE 3: NO optimization available
             } else {
                 html += `
                     <div class="sequence-row">
@@ -1423,143 +1087,62 @@
                 `;
             }
             
-            // Update the display
             display.innerHTML = html;
         }
 
         /**
          * Displays the optimization strategy explanation in human-readable format.
-         * 
-         * Provides a clear, detailed description of HOW the result was calculated,
-         * helping users understand the mathematical reasoning behind the optimization.
-         * The explanation adapts based on which algorithm was used.
-         * 
-         * ALGORITHM TYPES (aligned with paper):
-         * 
-         * 1. MULTIPLICITIES (η=1): Two subcases
-         *    a) General: n = e(m_r) × 2^k, e(m_r) > 1
-         *       - Shows entry point e(m_r), τ(m_r), k obtained analytically
-         *       - Formula: σ(n) = k + τ(m_r)
-         *    b) Powers of 2: n = 2^k (e(m_r)=1, τ=0)
-         *       - Special multiplicity with e(m_r)=1
-         *       - Formula: σ(2^k) = k (obtained analytically, no iteration)
-         * 
-         * 2. WORMHOLE (η=τ(m_r)/σ(n)):
-         *    - Shows entry point e(m_r) reached after k iterated steps
-         *    - Formula: σ(n) = k + τ(m_r)
-         *    - η = τ(m_r)/σ(n) = 1 - k/σ(n)
-         * 
-         * 3. STANDARD (η=0):
-         *    - Full iteration required, no optimization available
+         * Adapts the explanation to whichever algorithm was used.
          * 
          * @param {Object} result - The optimized result object
          * @param {number} n - The input number
-         * @param {string} result.algorithm - "multiplicity" or "wormhole"
-         * @param {string} result.prediction_type - Type of prediction used
-         * @param {number} [result.index_used] - Entry point e(m_r) (1 for powers of 2, S(0) case)
+         * @param {string} result.algorithm - "multiplicity", "wormhole", or "standard"
+         * @param {number} [result.index_used] - Entry point e(m_r) (1 for powers of 2)
          * @param {number} [result.ratio] - n/e(m_r) ratio (always a power of 2)
-         * @param {number} [result.tau] - Precomputed τ(m_r)
+         * @param {number} [result.tau_mr] - τ(m_r): remaining steps from dictionary
          * @param {number} [result.analytical_steps] - k = log₂(n/e(m_r))
          * @param {number} [result.entry_point_found] - Entry point value (wormhole)
-         * @param {number} [result.entry_point_position] - k iterated steps to e(m_r)
-         * @param {number} [result.wormhole_length] - Length of wormhole sequence
-         * @param {number} [result.computed_steps] - k iterated steps
-         * @param {number} [result.saved_steps] - τ(m_r) saved steps
+         * @param {number} [result.computed_steps] - k iterated steps to e(m_r)
          * @param {number} [result.mr_value] - The mr class value
-         * @returns {void} Updates the DOM element with id 'strategyContent'
-         * 
-         * @example
-         * // POWER OF 2 CASE (special multiplicity, e(m_r)=1)
-         * displayStrategy({
-         *   algorithm: "multiplicity",
-         *   prediction_type: "multiplicity_found",
-         *   index_used: 1,
-         *   tau_mr: 0,
-         *   analytical_steps: 9,
-         *   total_stopping_time: 9,
-         *   mr_value: 0
-         * }, 512);
-         * // → "Special multiplicity: 512 = 1 × 2^9, e(m_r)=1, τ=0
-         * //    k=9 obtained analytically, σ(512) = 0 + 9 = 9, η=1"
-         * 
-         * // GENERAL MULTIPLICITY CASE
-         * displayStrategy({
-         *   algorithm: "multiplicity",
-         *   prediction_type: "multiplicity_found",
-         *   index_used: 6,
-         *   ratio: 8,
-         *   tau_mr: 8,
-         *   analytical_steps: 3,
-         *   total_stopping_time: 11,
-         *   mr_value: 2
-         * }, 48);
-         * // → "e(m_r)=6 from mr=2, τ=8, k=log₂(8)=3 obtained analytically
-         * //    σ(48) = 3 + 8 = 11, η=1"
-         * 
-         * // WORMHOLE CASE
-         * displayStrategy({
-         *   algorithm: "wormhole",
-         *   prediction_type: "entry_point_found",
-         *   entry_point_found: 121,
-         *   entry_point_position: 16,
-         *   computed_steps: 16,
-         *   saved_steps: 95,
-         *   total_stopping_time: 111,
-         *   mr_value: 60
-         * }, 27);
-         * // → "e(m_r)=121 from mr=60 reached after k=16 iterated steps
-         * //    τ(m_r)=95, σ(27) = 16 + 95 = 111, η=95/111≈0.856"
-         * 
-         * // STANDARD CASE
-         * displayStrategy({
-         *   algorithm: "wormhole",
-         *   prediction_type: "no_entry_point",
-         *   total_stopping_time: 17,
-         *   computed_steps: 17,
-         *   saved_steps: 0
-         * }, 93);
-         * // → "Full iteration required, σ(93)=17, η=0"
+         * @returns {void}
          */
         function displayStrategy(result, n) {
             const strategyContent = document.getElementById('strategyContent');
             
             if (result.algorithm === 'multiplicity') {
                 
-                if (result.index_used === 1) { // Multiplicity S(0)
-                    // CASE 1a: Powers of 2 (special multiplicity with e(m_r)=1, τ=0)
+                if (result.index_used === 1) {
                     strategyContent.innerHTML = `
                         <div class="strategy-item">
                             <strong>Multiplicities algorithm (special case of S(0)):</strong> the Collatz function (only the even branch) is applied iteratively 
                             until reaching the entry point e(m<sub>r</sub>) = <strong>1</strong>, 
-                            taking k = log<sub>2</sub>(${n}/1) = log<sub>2</sub>(${n}) = ${result.analytical_steps} analytically steps (no iterations required).
-                            From there, the τ(m<sub>r</sub>) = <strong>0</strong> indicates no steps needed. </br>
+                            taking k = log<sub>2</sub>(${n}/1) = log<sub>2</sub>(${n}) = ${result.analytical_steps} analytical steps (no iterations required).
+                            From there, the τ(m<sub>r</sub>) = <strong>0</strong> indicates no steps needed. <br>
                             Finally, σ(${n}) = k + τ(m<sub>r</sub>) = ${result.analytical_steps} + 0 = <strong>${result.total_stopping_time}</strong>, with η=1
                         </div>
                     `;
                 } else {
-                    // CASE 1b: General multiplicity (e(m_r) > 1)
                     strategyContent.innerHTML = `
                         <div class="strategy-item">
                             <strong>Multiplicities algorithm:</strong> the Collatz function (only the even branch) is applied 
                             iteratively until reaching the entry point e(m<sub>r</sub>) = <strong>${result.index_used}</strong>, 
-                            taking k = log<sub>2</sub>(${result.n}/${result.index_used}) = log<sub>2</sub>(${result.ratio}) = 
+                            taking k = log<sub>2</sub>(${n}/${result.index_used}) = log<sub>2</sub>(${result.ratio}) = 
                             <strong>${result.analytical_steps}</strong> analytical steps (no iterations required). 
                             From there, the τ(m<sub>r</sub>) = <strong>${result.tau_mr}</strong> remaining steps are obtained 
-                            from the dictionary. </br>
+                            from the dictionary. <br>
                             Finally, σ(${n}) = k + τ(m<sub>r</sub>) = ${result.analytical_steps} + ${result.tau_mr} = <strong>${result.total_stopping_time}</strong>, with η=1
                         </div>
                     `;
                 }
 
-            } else if (result.prediction_type === 'entry_point_found') {
-                // CASE 2: Wormhole
+            } else if (result.algorithm === 'wormhole') {
                 strategyContent.innerHTML = `
                     <div class="strategy-item">
                         <strong>Wormholes algorithm</strong>: the Collatz function is applied iteratively 
                         until reaching entry point e(m<sub>r</sub>) = <strong>${result.entry_point_found}</strong>, 
                         taking k = <strong>${result.computed_steps}</strong> computed steps. 
                         From there, the τ(m<sub>r</sub>) = <strong>${result.tau_mr}</strong> remaining 
-                        steps are obtained from the dictionary. </br>
+                        steps are obtained from the dictionary. <br>
                         Finally, σ(${n}) = k + τ(m<sub>r</sub>) = ${result.computed_steps} + ${result.tau_mr} = 
                         <strong>${result.total_stopping_time}</strong>, with 
                         η = ${result.tau_mr}/${result.total_stopping_time} ≈ 
@@ -1568,11 +1151,10 @@
                 `;
 
             } else {
-                // CASE 3: Standard
                 strategyContent.innerHTML = `
                     <div class="strategy-item">
                         <strong>Standard Algorithm:</strong> the Collatz function is applied iteratively until reaching the trivial cycle, 
-                        and no multiplicity or wormhole pattern detected.</br>
+                        and no multiplicity or wormhole pattern detected.<br>
                         Finally, σ(${n}) = <strong>${result.total_stopping_time}</strong>, with η=0
                     </div>
                 `;
@@ -1580,28 +1162,11 @@
         }
 
         /**
-         * DOM Content Loaded event listener - initializes the application.
-         * 
-         * Sets up the initial state of the application when the page loads.
-         * This ensures a clean starting state and configures user interaction handlers.
-         * 
-         * INITIALIZATION TASKS:
-         * 1. Clears the input field to prevent cached values
-         * 2. Sets up Enter key handler for convenient form submission
-         * 
-         * ENTER KEY BEHAVIOR:
-         * Allows users to press Enter in the input field instead of clicking
-         * the "Process" button, improving user experience and accessibility.
+         * Initializes the application on DOMContentLoaded.
+         * Clears the input field and registers the Enter key listener.
          * 
          * @listens DOMContentLoaded
-         * @returns {void} No return value; sets up event handlers
-         * 
-         * @example
-         * // When page loads:
-         * document.addEventListener('DOMContentLoaded', function() {
-         *   // Input field is cleared
-         *   // Enter key triggers processNumber()
-         * });
+         * @returns {void}
          */
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('numberInput').value = '';
