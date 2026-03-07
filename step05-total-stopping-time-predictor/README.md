@@ -78,4 +78,4 @@ GitHub: [@hhvvjj](https://github.com/hhvvjj)
 
 ---
 
-[← Back to Main](https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture)
+[← Back](https://github.com/hhvvjj/a-new-algebraic-framework-for-the-collatz-conjecture)
