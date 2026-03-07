@@ -1,23 +1,95 @@
 <!--
-  The Collatz Amphora
-  
-  An interactive 3D visualization tool that integrates the complete Tuple-based Transform framework into a single explorable 
-  structure. The tool demonstrates how all Collatz sequences converge through 42 pre-computed wormhole pathways arranged in 
-  an amphora-shaped geometric form.
-
-  Enter any positive integer up to 10 billion and explore:
-    - **3D visualization** of the 42 known wormhole sequences forming the amphora structure
-    - **Real-time classification** into taxonomy types (A, B, or C) based on maximum value position
-    - **Computational optimization** showing steps saved by intersecting pre-calculated wormhole paths
-    - **Interactive navigation** through your sequence with color-coded sphere highlighting
-
-  The amphora structure serves as a visual proof of universal convergence: every input number eventually intersects one of the 
-  42 wormholes, guaranteeing convergence to the cycle (4, 2, 1).
-  
-  Author: Javier Hernandez
-  Email: 271314@pm.me
-  License: https://github.com/hhvvjj/a-new-algebraic-collatz-framework/blob/main/LICENSE
-  Repository: https://github.com/hhvvjj/a-new-algebraic-collatz-framework/tree/main/step06-the-collatz-amphora
+/**
+ * ============================================================================
+ * THE COLLATZ AMPHORA
+ * ============================================================================
+ *
+ * An interactive 3D visualization tool that integrates the complete
+ * Tuple-based Transform framework into a single explorable structure.
+ * All Collatz sequences converge through 42 pre-computed wormhole pathways
+ * arranged in an amphora-shaped geometric form.
+ *
+ * MATHEMATICAL FOUNDATION:
+ * Based on "On the Convergence of Collatz Sequences: A New Algebraic Framework"
+ * by Javier Hernandez (2026).
+ * https://doi.org/10.5281/zenodo.15546925
+ *
+ * CONCEPT:
+ * The amphora structure serves as a visual proof of universal convergence:
+ * every positive integer eventually intersects one of the 42 known wormholes,
+ * guaranteeing convergence to the trivial cycle (4, 2, 1).
+ *
+ * INTERACTIVE FEATURES:
+ * Enter any positive integer up to 10 billion and explore:
+ *
+ *   • 3D visualization of the 42 wormhole sequences forming the amphora
+ *   • Taxonomic classification into types A, B or C (Definition 7.3):
+ *       - Type A: M* occurs before the pseudocycle (pre-pseudocycle maximum)
+ *       - Type B: M* = m* occurs within the pseudocycle
+ *       - Type C: M* occurs after the pseudocycle (post-pseudocycle maximum)
+ *   • Local maximum m* — invariant pseudocycle maximum (Theorem 6.9),
+ *       shown in magenta when distinct from M*
+ *   • Regularity detection — identifies regular elements n = e(mr)·2^k
+ *       (Definition 8.1) with fully analytic step calculation:
+ *       - Computed Steps = 0 (halving prefix requires no 3n+1 iteration)
+ *       - Saved Steps = Total Steps
+ *   • Computational optimization showing steps saved by intersecting
+ *       pre-calculated wormhole paths
+ *   • Interactive navigation through the sequence with color-coded
+ *       sphere highlighting
+ *
+ * COLOR SCHEME:
+ *
+ *   3D Spheres:
+ *     White   — Terminal convergence value (1)
+ *     Green   — Precomputed wormhole values
+ *     Red     — Pseudocycle Entry / Exiting Points
+ *     Orange  — Computed prefix values (irregular elements only)
+ *     Grey    — M* global maximum (largest sphere)
+ *     Magenta — m* pseudocycle local maximum (largest sphere, when ≠ M*)
+ *     Yellow  — Current value during navigation
+ *
+ *   Sequence Display:
+ *     Yellow box — Starting value n
+ *     White box  — Terminal value 1
+ *     Grey box   — Max Value / M*
+ *     Green      — Wormhole values
+ *     Red        — Pseudocycle values
+ *     Orange     — Computed prefix
+ *     Magenta    — m* local maximum
+ *
+ * DICTIONARY:
+ * - 42 known S(mr) classes with pseudocycles, wormhole sequences,
+ *   distances d(mr) and local maxima m* (Appendix A, Table 9)
+ * - Tested and verified for all n < 2^40
+ *
+ * COMPUTATIONAL LIMITS:
+ * - Maximum input: 10,000,000,000 (10 billion)
+ *
+ * THEORETICAL SIGNIFICANCE:
+ * Demonstrates the structural invariance properties of the algebraic framework
+ * (Theorems 6.7, 6.9): once a sequence reaches an entry point e(mr), its
+ * remaining trajectory is completely determined and identical for all n ∈ S(mr).
+ *
+ * Universal convergence (Theorem 9.4): every positive integer belongs
+ * to exactly one class S(mr) and converges to (4,2,1) — whether regular (k pure
+ * halvings to e(mr)) or irregular (complex 3n+1 trajectory to e(mr)), both types
+ * then follow the same invariant wormhole to m=0. Proof is independent of the
+ * finiteness of Mrep (Theorem 9.5).
+ *
+ * Total stopping time (Definition 10.1): for any n ∈ S(mr),
+ * σ(n) = k + τ(mr), where k is the number of steps from n to e(mr) and τ(mr)
+ * is the invariant wormhole length (Definition 10.2). For regular elements,
+ * k = log₂(n/e(mr)) is obtained analytically with no iteration (η=1, O(1)).
+ * For irregular elements, k steps are iterated to reach e(mr) (Wormhole Algorithm).
+ *
+ * AUTHOR: Javier Hernandez
+ * EMAIL: 271314@pm.me
+ * LICENSE: https://github.com/hhvvjj/a-new-algebraic-collatz-framework/blob/main/LICENSE
+ * REPOSITORY: https://github.com/hhvvjj/a-new-algebraic-collatz-framework/tree/main/step06-the-collatz-amphora
+ *
+ * ============================================================================
+ */
 -->
 
 <!DOCTYPE html>
@@ -105,8 +177,8 @@
             flex-direction: column;
             gap: 8px;
             align-items: center;
-            height: 345px;
-            min-height: 345px;
+            height: 455px;
+            min-height: 455px;
             justify-content: flex-start;
             overflow: hidden;
         }
@@ -148,6 +220,14 @@
             color: #fff;
         }
 
+        .regularity-regular {
+            color: #4ade80;
+            font-weight: 600;
+        }
+        .regularity-irregular {
+            color: #fb923c;
+            font-weight: 600;
+        }
         .mr-value {
             color: #fff;
         }
@@ -191,8 +271,8 @@
             flex-direction: column;
             gap: 10px;
             align-items: center;
-            height: 345px;
-            min-height: 345px;
+            height: 455px;
+            min-height: 455px;
             justify-content: center;
         }
         
@@ -379,8 +459,12 @@
             background: rgba(255,255,255,0.6);
         }
         
-        .seq-one { 
-            color: #ffffff; font-weight: bold; background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; }
+        .seq-end { 
+            color: #000; font-weight: bold; background: #ffffff; padding: 2px 4px; border-radius: 3px; }
+
+        .seq-start {
+            color: #000; font-weight: bold; background: #ffff00; padding: 2px 4px; border-radius: 3px;
+        }
 
         .seq-dictionary { 
             color: #44ff44; font-weight: bold; 
@@ -400,6 +484,11 @@
 
         .seq-max { 
             font-weight: bold; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.6);
+        }
+
+        .seq-mstar {
+            font-weight: bold; color: #ff00ff;
+            padding: 2px 4px; border-radius: 3px;
         }
 
         .type-indicator {
@@ -506,7 +595,19 @@
                 <div class="info-value">-</div>
             </div>
             <div class="info-item">
-                <div class="info-label">Sequence Type</div>
+                <div class="info-label">M*</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">m*</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Taxonomy</div>
+                <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Regularity</div>
                 <div class="info-value">-</div>
             </div>
         </div>
@@ -523,29 +624,69 @@
         <div class="legend-content">
             <span class="legend-close" onclick="hideLegend()">&times;</span>
             <h2>Color Legend</h2>
-            <div class="legend-item">
-                <div class="legend-sphere legend-white"></div>
-                <div><strong>White Spheres</strong><br>Convergence point, trivial cycle, where all sequences end</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-sphere legend-green"></div>
-                <div><strong>Green Spheres</strong><br>Predefined values (42 well-known wormhole sequences)</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-sphere legend-red"></div>
-                <div><strong>Red Spheres</strong><br>Entry Point and Exiting Point on the pseudocycles</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-sphere legend-orange"></div>
-                <div><strong>Orange Spheres</strong><br>Computed values in the sequence before an entry point</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-sphere legend-yellow"></div>
-                <div><strong>Yellow Sphere</strong><br>Highlights the current value during navigation</div>
-            </div>
-            <div class="legend-item">
-                <div style="width: 30px; height: 30px; border-radius: 50%; margin-right: 15px; border: 2px solid #333; background: #888; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 10px;">MAX</div>
-                <div><strong>Large Sphere</strong><br>The maximum value in the sequence. It helps identify sequence type (A, B or C)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;">
+                <div>
+                    <div style="font-size: 11px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">3D Spheres</div>
+                    <div class="legend-item">
+                        <div class="legend-sphere legend-white"></div>
+                        <div><strong>White</strong><br>Terminal value (1)</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-sphere legend-green"></div>
+                        <div><strong>Green</strong><br>Wormhole values</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-sphere legend-red"></div>
+                        <div><strong>Red</strong><br>Pseudocycle Entry / Exiting Point</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-sphere legend-orange"></div>
+                        <div><strong>Orange</strong><br>Computed prefix values</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-sphere legend-yellow"></div>
+                        <div><strong>Yellow</strong><br>Current value (navigation)</div>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width:30px;height:30px;border-radius:50%;margin-right:15px;border:2px solid #333;background:#888;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:9px;flex-shrink:0;">M*</div>
+                        <div><strong>Large Grey</strong><br>M* global maximum</div>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width:30px;height:30px;border-radius:50%;margin-right:15px;border:2px solid #333;background:#ff00ff;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:9px;flex-shrink:0;">m*</div>
+                        <div><strong>Large Magenta</strong><br>m* pseudocycle maximum</div>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Sequence Display</div>
+                    <div class="legend-item">
+                        <span style="background:#ffff00;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">n</span>
+                        <div><strong>Yellow box</strong><br>Starting value</div>
+                    </div>
+                    <div class="legend-item">
+                        <span style="background:#ffffff;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">1</span>
+                        <div><strong>White box</strong><br>Terminal value</div>
+                    </div>
+                    <div class="legend-item">
+                        <span style="color:#44ff44;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">w</span>
+                        <div><strong>Green</strong><br>Wormhole values</div>
+                    </div>
+                    <div class="legend-item">
+                        <span style="color:#ff0000;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">ps</span>
+                        <div><strong>Red</strong><br>Pseudocycle values</div>
+                    </div>
+                    <div class="legend-item">
+                        <span style="color:#ffb347;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">c</span>
+                        <div><strong>Orange</strong><br>Computed prefix</div>
+                    </div>
+                    <div class="legend-item">
+                        <span style="background:rgba(255,255,255,0.6);color:#000;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">M*</span>
+                        <div><strong>Grey box</strong><br>Max Value / M*</div>
+                    </div>
+                    <div class="legend-item">
+                        <span style="color:#ff00ff;font-weight:bold;padding:2px 6px;border-radius:3px;margin-right:15px;font-family:monospace;flex-shrink:0;">m*</span>
+                        <div><strong>Magenta</strong><br>m* local maximum</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -566,8 +707,10 @@
             WHITE: 0xffffff,
             GREEN: 0x44ff44,
             RED: 0xff0000,
+            YELLOW: 0xffff00,
+            MAGENTA: 0xff00ff,
             ORANGE: 0xffb347,
-            YELLOW: 0xffff00
+            GREY: 0x888888
         };
         
         let scene, camera, renderer;
@@ -588,233 +731,224 @@
          * This is the heart of the Collatz Amphora system. Each entry represents one of the
          * 42 mathematically proven pseudocycles.
          * 
-         * Structure of each entry:
-         * - mr: The entry point = exiting point for the 42 pseudocycles (Tuple-based Transform domain)
-         * - pseudocycle: The entry point =! exiting point for the 42 pseudocycles (Collatz domain)
-         * - wormhole: Complete sequence from entry point value to convergence [1]
+         * Structure of each entry (keyed by mr):
+         * - key (mr): The first repeated parameter value in the Tuple-based Transform domain.
+         *             Serves as the unique identifier for each pseudocycle class.
+         * - pseudocycle: The entry point and exiting point of the pseudocycle (Collatz domain).
+         *                pseudocycle[0] is also wormhole[0], the first value of the wormhole sequence.
+         * - wormhole: Complete sequence from the entry point value to convergence [1]
          * 
          * This data was computed using the algorithms described in the research paper
          * "On the Convergence of Collatz Sequences: A New Algebraic Framework"
          */
         const DICTIONARY = {
-            1: {
+            0: {
                 pseudocycle: [1,1],
-                mr: 0,
                 wormhole: [1]
             },
-            3: {
+            1: {
                 pseudocycle: [3,4],
-                mr: 1,
                 wormhole: [3,10,5,16,8,4,2,1]
             },
-            6: {
+            2: {
                 pseudocycle: [6,5],
-                mr: 2,
                 wormhole: [6,3,10,5,16,8,4,2,1]
             },
-            7: {
+            3: {
                 pseudocycle: [7,8],
-                mr: 3,
                 wormhole: [7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            14: {
+            6: {
                 pseudocycle: [14,13],
-                mr: 6,
                 wormhole: [14,7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            15: {
+            7: {
                 pseudocycle: [15,16],
-                mr: 7,
                 wormhole: [15,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            18: {
+            8: {
                 pseudocycle: [18,17],
-                mr: 8,
                 wormhole: [18,9,28,14,7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            19: {
+            9: {
                 pseudocycle: [19,20],
-                mr: 9,
                 wormhole: [19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            25: {
+            12: {
                 pseudocycle: [25,26],
-                mr: 12,
                 wormhole: [25,76,38,19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            33: {
+            16: {
                 pseudocycle: [33,34],
-                mr: 16,
                 wormhole: [33,100,50,25,76,38,19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            39: {
+            19: {
                 pseudocycle: [39,40],
-                mr: 19,
                 wormhole: [39,118,59,178,89,268,134,67,202,101,304,152,76,38,19,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            51: {
+            25: {
                 pseudocycle: [51,52],
-                mr: 25,
                 wormhole: [51,154,77,232,116,58,29,88,44,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
             },
-            91: {
+            45: {
                 pseudocycle: [91,92],
-                mr: 45,
                 wormhole: [91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            108: {
+            53: {
                 pseudocycle: [108,107],
-                mr: 53,
                 wormhole: [108,54,27,82,41,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            121: {
+            60: {
                 pseudocycle: [121,122],
-                mr: 60,
                 wormhole: [121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            159: {
+            79: {
                 pseudocycle: [159,160],
-                mr: 79,
                 wormhole: [159,478,239,718,359,1078,539,1618,809,2428,1214,607,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            183: {
+            91: {
                 pseudocycle: [183,184],
-                mr: 91,
                 wormhole: [183,550,275,826,413,1240,620,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            243: {
+            121: {
                 pseudocycle: [243,244],
-                mr: 121,
                 wormhole: [243,730,365,1096,548,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            252: {
+            125: {
                 pseudocycle: [252,251],
-                mr: 125,
                 wormhole: [252,126,63,190,95,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            284: {
+            141: {
                 pseudocycle: [284,283],
-                mr: 141,
                 wormhole: [284,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            333: {
+            166: {
                 pseudocycle: [333,334],
-                mr: 166,
                 wormhole: [333,1000,500,250,125,376,188,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            378: {
+            188: {
                 pseudocycle: [378,377],
-                mr: 188,
                 wormhole: [378,189,568,284,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            411: {
+            205: {
                 pseudocycle: [411,412],
-                mr: 205,
                 wormhole: [411,1234,617,1852,926,463,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            487: {
+            243: {
                 pseudocycle: [487,488],
-                mr: 243,
                 wormhole: [487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            501: {
+            250: {
                 pseudocycle: [501,502],
-                mr: 250,
                 wormhole: [501,1504,752,376,188,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            649: {
+            324: {
                 pseudocycle: [649,650],
-                mr: 324,
                 wormhole: [649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            667: {
+            333: {
                 pseudocycle: [667,668],
-                mr: 333,
                 wormhole: [667,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            865: {
+            432: {
                 pseudocycle: [865,866],
-                mr: 432,
                 wormhole: [865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            889: {
+            444: {
                 pseudocycle: [889,890],
-                mr: 444,
                 wormhole: [889,2668,1334,667,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            975: {
+            487: {
                 pseudocycle: [975,976],
-                mr: 487,
                 wormhole: [975,2926,1463,4390,2195,6586,3293,9880,4940,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1153: {
+            576: {
                 pseudocycle: [1153,1154],
-                mr: 576,
                 wormhole: [1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1185: {
+            592: {
                 pseudocycle: [1185,1186],
-                mr: 592,
                 wormhole: [1185,3556,1778,889,2668,1334,667,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1299: {
+            649: {
                 pseudocycle: [1299,1300],
-                mr: 649,
                 wormhole: [1299,3898,1949,5848,2924,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1335: {
+            667: {
                 pseudocycle: [1335,1336],
-                mr: 667,
                 wormhole: [1335,4006,2003,6010,3005,9016,4508,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1368: {
+            683: {
                 pseudocycle: [1368,1367],
-                mr: 683,
                 wormhole: [1368,684,342,171,514,257,772,386,193,580,290,145,436,218,109,328,164,82,41,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1731: {
+            865: {
                 pseudocycle: [1731,1732],
-                mr: 865,
                 wormhole: [1731,5194,2597,7792,3896,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            1779: {
+            889: {
                 pseudocycle: [1779,1780],
-                mr: 889,
                 wormhole: [1779,5338,2669,8008,4004,2002,1001,3004,1502,751,2254,1127,3382,1691,5074,2537,7612,3806,1903,5710,2855,8566,4283,12850,6425,19276,9638,4819,14458,7229,21688,10844,5422,2711,8134,4067,12202,6101,18304,9152,4576,2288,1144,572,286,143,430,215,646,323,970,485,1456,728,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            2307: {
+            1153: {
                 pseudocycle: [2307,2308],
-                mr: 1153,
                 wormhole: [2307,6922,3461,10384,5192,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            2430: {
+            1214: {
                 pseudocycle: [2430,2429],
-                mr: 1214,
                 wormhole: [2430,1215,3646,1823,5470,2735,8206,4103,12310,6155,18466,9233,27700,13850,6925,20776,10388,5194,2597,7792,3896,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            3643: {
+            1821: {
                 pseudocycle: [3643,3644],
-                mr: 1821,
                 wormhole: [3643,10930,5465,16396,8198,4099,12298,6149,18448,9224,4612,2306,1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            4857: {
+            2428: {
                 pseudocycle: [4857,4858],
-                mr: 2428,
                 wormhole: [4857,14572,7286,3643,10930,5465,16396,8198,4099,12298,6149,18448,9224,4612,2306,1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             },
-            7287: {
+            3643: {
                 pseudocycle: [7287,7288],
-                mr: 3643,
                 wormhole: [7287,21862,10931,32794,16397,49192,24596,12298,6149,18448,9224,4612,2306,1153,3460,1730,865,2596,1298,649,1948,974,487,1462,731,2194,1097,3292,1646,823,2470,1235,3706,1853,5560,2780,1390,695,2086,1043,3130,1565,4696,2348,1174,587,1762,881,2644,1322,661,1984,992,496,248,124,62,31,94,47,142,71,214,107,322,161,484,242,121,364,182,91,274,137,412,206,103,310,155,466,233,700,350,175,526,263,790,395,1186,593,1780,890,445,1336,668,334,167,502,251,754,377,1132,566,283,850,425,1276,638,319,958,479,1438,719,2158,1079,3238,1619,4858,2429,7288,3644,1822,911,2734,1367,4102,2051,6154,3077,9232,4616,2308,1154,577,1732,866,433,1300,650,325,976,488,244,122,61,184,92,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1]
             }
         };
-               
+
+        /**
+         * Reverse index mapping each wormhole entry point value to its mr key.
+         * Built once at load time for O(1) intersection lookup in processCollatz().
+         * Example: ENTRY_POINT_INDEX[7] === 3, ENTRY_POINT_INDEX[91] === 45
+         */
+        const ENTRY_POINT_INDEX = {};
+        for (const mr of Object.keys(DICTIONARY)) {
+            ENTRY_POINT_INDEX[DICTIONARY[mr].wormhole[0]] = parseInt(mr);
+        }
+
         /* *******************************************************************************************************************
          * CORE MATHEMATICAL FUNCTIONS - THE COLLATZ AMPHORA
          * *******************************************************************************************************************
          * This section implements the fundamental Collatz operations and the
          * Tuple-based Transform classification system for sequence analysis.
          */
+
+        /**
+         * Determines whether a number is regular with respect to its wormhole class.
+         *
+         * A number n ∈ S(mr) is regular if n = e(mr) · 2^k for some k ≥ 0,
+         * meaning it reaches the entry point e(mr) through pure successive halvings
+         * with no 3n+1 operations in the prefix trajectory (Definition 8.1).
+         *
+         * @param {number} n - The starting number
+         * @param {number} entryPoint - The wormhole entry point e(mr) = pseudocycle[0]
+         * @returns {boolean} true if n is regular, false if irregular
+         */
+        function isRegular(n, entryPoint) {
+            let current = n;
+            while (current >= entryPoint) {
+                if (current === entryPoint) return true;
+                if (current % 2 !== 0) return false; // odd → must have used 3n+1 → irregular
+                current = current / 2;
+            }
+            return false;
+        }
 
         /**
          * Computes the complete Collatz sequence for a given starting number.
@@ -893,26 +1027,25 @@
             // Compute the complete Collatz sequence
             const sequence = calculateCollatz(number);
 
-            // Look for intersection with known wormhole data
-            const collatzKeys = Object.keys(DICTIONARY).map(k => parseInt(k));
-            let entrypoint = null;
+            // Look for intersection with known wormhole data using O(1) index
+            let entrypointMr = null;
             let entrypointIndex = -1;
 
-            // Find first value that exists in our precomputed dictionary
+            // Find first value whose entry point maps to a known wormhole
             for (let i = 0; i < sequence.length; i++) {
-                if (collatzKeys.includes(sequence[i])) {
-                    entrypoint = sequence[i];
+                if (sequence[i] in ENTRY_POINT_INDEX) {
+                    entrypointMr = ENTRY_POINT_INDEX[sequence[i]];
                     entrypointIndex = i;
                     break;
                 }
             }
 
-            if (entrypoint) {
+            if (entrypointMr !== null && entrypointMr !== undefined) {
                 // Successfully found wormhole intersection
                 const result = {
                     number: number,
                     sequence: sequence,
-                    entrypoint: entrypoint,           // First dictionary value encountered
+                    entrypointMr: entrypointMr,       // mr key of the matched wormhole
                     entrypointIndex: entrypointIndex  // Position where wormhole begins
                 };
 
@@ -944,16 +1077,20 @@
          * predict convergence characteristics according to the research framework.
          * 
          * @param {Array<number>} sequence - Complete Collatz sequence
-         * @param {number} entrypoint - The wormhole entry value (key in DICTIONARY)
+         * @param {number} entrypointMr - The mr key of the matched wormhole (key in DICTIONARY)
          * @returns {string} Classification: 'a', 'b', or 'c' (lowercase)
          * 
          * @example
-         * // For sequence [7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1]
-         * // Max value 52 occurs before the pseudocycle [7,8]
-         * calculateSequenceType(sequence, 7) // returns 'a'
+         * // For n=2143 ∈ S(60): M*=32560 occurs before the pseudocycle [121,122] → Type A
+         * calculateSequenceType(sequence2143, 60) // returns 'a'
+         * // For n=27 ∈ S(60): M*=m*=9232 occurs within the pseudocycle [121,122] → Type B
+         * calculateSequenceType(sequence27, 60)   // returns 'b'
          */
-        function calculateSequenceType(sequence, entrypoint) {
-            const collatzData = DICTIONARY[entrypoint.toString()];
+        function calculateSequenceType(sequence, entrypointMr) {
+            // S(0) contains only Type A elements (Lemma 7.5)
+            if (entrypointMr === 0) return 'a';
+
+            const collatzData = DICTIONARY[entrypointMr.toString()];
 
             // Safety check for valid dictionary data
             if (!collatzData || !collatzData.pseudocycle || collatzData.pseudocycle.length < 2) {
@@ -1294,8 +1431,10 @@
          * 
          * Creates spheres for each element of the computed sequence, overlaid on
          * the corresponding wormhole curve in extensionsGroup. Color coding is
-         * applied via applySequenceColors(). The sphere representing the maximum
-         * value is rendered at 2.5× the standard size for emphasis.
+         * applied via applySequenceColors(). Two spheres are rendered at 2.5× the
+         * standard size for emphasis: the Max Value / M* (grey) and the m* local
+         * maximum (yellow). When both coincide (Type B), a single large grey sphere
+         * is shown.
          * 
          * @returns {void} Rebuilds extensionsGroup with the current result's sequence spheres
          */
@@ -1304,12 +1443,15 @@
 
             const result = processedResults[currentResultIndex];
             const collatzKeys = Object.keys(DICTIONARY);
-            const apotemIndex = collatzKeys.indexOf(result.entrypoint.toString());
+            const apotemIndex = collatzKeys.indexOf(result.entrypointMr.toString());
 
             if (apotemIndex >= 0) {
                 const masterCurve = masterCurves[apotemIndex];
                 const maxValue = Math.max(...result.sequence);
                 const maxValueIndex = result.sequence.indexOf(maxValue);
+                const collatzData = DICTIONARY[result.entrypointMr.toString()];
+                const collatzMstarViz = (result.entrypointMr > 0) ? Math.max(...collatzData.wormhole) : null;
+                const mstarIndex = (collatzMstarViz !== null) ? result.sequence.indexOf(collatzMstarViz) : -1;
 
                 // Use the same curve parameterization as base spheres
                 const curvePoints = masterCurve.getPoints(3000);
@@ -1356,11 +1498,13 @@
                     const value = result.sequence[result.sequence.length - 1 - i];
                     const sequenceIndex = result.sequence.length - 1 - i;
                     const isMaxValue = (sequenceIndex === maxValueIndex);
+                    const isMstarSphere = (sequenceIndex === mstarIndex);
 
-                    // Make maximum value sphere larger for emphasis
-                    const sphereRadius = isMaxValue ? sphereSize * 2.5 : sphereSize;
+                    // Make maximum value sphere larger for emphasis; m* sphere also large in yellow
+                    const sphereRadius = (isMaxValue || isMstarSphere) ? sphereSize * 2.5 : sphereSize;
                     const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 8, 6);
-                    const material = new THREE.MeshPhongMaterial({ color: SPHERE_COLORS.GREEN });
+                    const initialColor = isMaxValue ? SPHERE_COLORS.GREY : (isMstarSphere ? SPHERE_COLORS.MAGENTA : SPHERE_COLORS.GREEN);
+                    const material = new THREE.MeshPhongMaterial({ color: initialColor });
                     const sphere = new THREE.Mesh(sphereGeometry, material);
                     sphere.position.copy(position);
 
@@ -1371,7 +1515,8 @@
                         sequenceIndex: sequenceIndex,
                         isComputed: sequenceIndex < result.entrypointIndex,
                         isMaxValue: isMaxValue,
-                        baseColor: SPHERE_COLORS.GREEN
+                        isMstarSphere: isMstarSphere,
+                        baseColor: isMaxValue ? SPHERE_COLORS.GREY : (isMstarSphere ? SPHERE_COLORS.MAGENTA : SPHERE_COLORS.GREEN)
                     };
 
                     extensionsGroup.add(sphere);
@@ -1386,34 +1531,48 @@
         /**
          * Applies color coding to the user sequence spheres in extensionsGroup.
          * 
-         * Color scheme:
-         * - White:  The final convergence value (1)
-         * - Orange: Computed values before the wormhole entry point
-         * - Red:    Pseudocycle boundary values (entry and exiting points)
-         * - Green:  Precomputed wormhole values from the DICTIONARY
+         * Color scheme (priority order):
+         * - White:   The final convergence value (1)
+         * - Grey:    M* global maximum (largest sphere, highest priority)
+         * - Magenta: m* pseudocycle local maximum (when distinct from M*)
+         * - Orange:  Computed prefix values before entry point (irregular elements only)
+         * - Red:     Pseudocycle boundary values (entry and exiting points)
+         * - Green:   Precomputed wormhole values from the DICTIONARY
          * 
          * Also stores the assigned color as baseColor in userData so it can be
          * restored after yellow highlight is removed during navigation.
          * 
-         * @param {Object} result - Processed sequence result containing entrypoint info
+         * @param {Object} result - Processed sequence result
+         * @param {number}        result.number       - The original starting value n
+         * @param {number}        result.entrypointMr - The mr key of the matched wormhole
+         * @param {number}        result.entrypointIndex - Index where the wormhole begins
+         * @param {Array<number>} result.sequence     - Complete Collatz sequence
          * @returns {void} Updates sphere materials in extensionsGroup
          */
         function applySequenceColors(result) {
-            const collatzData = DICTIONARY[result.entrypoint.toString()];
+            const collatzData = DICTIONARY[result.entrypointMr.toString()];
+            const entryPoint = collatzData ? collatzData.pseudocycle[0] : null;
+            const isReg = entryPoint !== null && isRegular(result.number, entryPoint);
             for (const sphere of extensionsGroup.children) {
                 if (sphere.userData) {
                     const value = sphere.userData.value;
-                    const isComputed = sphere.userData.isComputed;
+                    // For regular elements, the halving prefix is analytically predictable —
+                    // not "computed" in the sense of requiring 3n+1 iteration, so not orange.
+                    const isComputed = isReg ? false : sphere.userData.isComputed;
                     let finalColor;
 
                     if (value === 1) {
-                        finalColor = SPHERE_COLORS.WHITE;  // Final convergence value
+                        finalColor = SPHERE_COLORS.WHITE;   // Final convergence value
+                    } else if (sphere.userData.isMaxValue) {
+                        finalColor = SPHERE_COLORS.GREY;    // M* global maximum (largest sphere)
+                    } else if (sphere.userData.isMstarSphere) {
+                        finalColor = SPHERE_COLORS.MAGENTA; // m* pseudocycle local maximum
                     } else if (isComputed) {
-                        finalColor = SPHERE_COLORS.ORANGE; // Computed values
+                        finalColor = SPHERE_COLORS.ORANGE;  // Computed prefix values (irregular only)
                     } else if (collatzData && collatzData.pseudocycle.includes(value)) {
-                        finalColor = SPHERE_COLORS.RED;    // Pseudocycle values
+                        finalColor = SPHERE_COLORS.RED;     // Pseudocycle boundary values
                     } else {
-                        finalColor = SPHERE_COLORS.GREEN;  // Precomputed values (dictionary)
+                        finalColor = SPHERE_COLORS.GREEN;   // Precomputed wormhole values
                     }
 
                     sphere.material.color.setHex(finalColor);
@@ -1433,6 +1592,20 @@
          * Also stores the assigned color as baseColor in userData so it can be
          * restored after a yellow navigation highlight is removed.
          * 
+         * @returns {void} Updates sphere materials in spheresGroup
+         */
+        /**
+         * Applies final color coding to the base amphora spheres in spheresGroup.
+         *
+         * Called once after the full amphora structure is built. Colors are assigned
+         * based on the role of each value within its wormhole class:
+         * - White: The terminal convergence value (1)
+         * - Red:   Pseudocycle boundary values (entry and exiting points)
+         * - Green: All other precomputed wormhole values
+         *
+         * Also initializes baseColor in userData for correct color restoration
+         * after navigation highlighting.
+         *
          * @returns {void} Updates sphere materials in spheresGroup
          */
         function applyFinalColors() {
@@ -1732,21 +1905,37 @@
         /**
          * Rebuilds the info panel and sequence display for the current result and step.
          * 
-         * Recalculates all derived values (computed steps, saved steps, sequence type,
-         * max value) and regenerates the color-coded HTML sequence display and the
-         * right-hand info panel. Called after processCollatz(), previous() and next().
+         * Recalculates all derived values (computed steps, saved steps, taxonomy type,
+         * Max Value / M* global maximum, m* local pseudocycle maximum, and regularity)
+         * and regenerates the color-coded HTML sequence display and the right-hand
+         * info panel. Called after processCollatz(), previous() and next().
+         *
+         * Regularity is determined via isRegular(n, entryPoint) where entryPoint is
+         * collatzData.pseudocycle[0]. For regular elements (n = e(mr) · 2^k),
+         * Computed Steps is always 0 and Saved Steps equals Total Steps, since the
+         * halving prefix is analytically predictable without iteration (Definition 8.1).
+         * For irregular elements, Computed Steps = entrypointIndex as usual.
          * 
          * @returns {void} Updates #infoPanelContent and #sequenceDisplay DOM elements
          */
         function updateProcessedInfo() {
             const sequenceElement = document.getElementById('sequenceDisplay');
             const result = processedResults[currentResultIndex];
-            const collatzData = DICTIONARY[result.entrypoint.toString()];
+            const collatzData = DICTIONARY[result.entrypointMr.toString()];
             const maxValue = Math.max(...result.sequence);
-            const sequenceType = calculateSequenceType(result.sequence, result.entrypoint);
-            const computedValues = result.entrypointIndex;
-            const savedValues = result.sequence.length - result.entrypointIndex - 1;
+            const sequenceType = calculateSequenceType(result.sequence, result.entrypointMr);
             const steps = result.sequence.length - 1;
+
+            // For regular elements (n = e(mr) · 2^k), the prefix consists entirely of
+            // halvings — analytically predictable, no 3n+1 operations. Therefore:
+            // - Computed Steps = 0 (the k halvings are deterministic, not "computed")
+            // - Saved Steps = Total Steps (everything is precomputed or analytic)
+            // For irregular elements, the prefix contains 3n+1 operations that must
+            // be iterated, so Computed Steps = entrypointIndex as usual.
+            const entryPoint = collatzData ? collatzData.pseudocycle[0] : null;
+            const regular = entryPoint !== null && isRegular(result.number, entryPoint);
+            const computedValues = regular ? 0 : result.entrypointIndex;
+            const savedValues = regular ? steps : result.sequence.length - result.entrypointIndex - 1;
             
             const maxValueIndex = result.sequence.indexOf(maxValue);
             const isMaxComputed = maxValueIndex < result.entrypointIndex;
@@ -1760,14 +1949,17 @@
             }
             
             let sequenceHTML = '';
+            const collatzMstar = result.entrypointMr > 0 ? Math.max(...collatzData.wormhole) : null;
             for (let i = 0; i < result.sequence.length; i++) {
                 const value = result.sequence[i];
                 let cssClass = '';
                 const isCurrentValue = (i === currentSequenceIndex);
                 const isMaxValue = (value === maxValue);
+                const isMstarValue = (collatzMstar !== null && value === collatzMstar);
+                const isStartValue = (i === 0);
                 
                 if (value === 1) {
-                    cssClass = 'seq-one';
+                    cssClass = 'seq-end';
                 } else if (i < result.entrypointIndex) {
                     cssClass = 'seq-computed';
                 } else if (collatzData && collatzData.pseudocycle.includes(value)) {
@@ -1778,6 +1970,12 @@
                 
                 if (isMaxValue) {
                     cssClass += ' seq-max';
+                }
+                if (isMstarValue) {
+                    cssClass += ' seq-mstar';
+                }
+                if (isStartValue) {
+                    cssClass += ' seq-start';
                 }
                 if (isCurrentValue) {
                     cssClass += ' seq-current';
@@ -1809,7 +2007,7 @@
             
             infoPanelHTML += '<div class="info-item">';
             infoPanelHTML += '<div class="info-label">mr Class</div>';
-            infoPanelHTML += `<div class="info-value mr-value">${collatzData.mr}</div>`;
+            infoPanelHTML += `<div class="info-value mr-value">${result.entrypointMr}</div>`;
             infoPanelHTML += '</div>';
             
             infoPanelHTML += '<div class="info-item">';
@@ -1837,14 +2035,36 @@
             infoPanelHTML += `<div class="info-value saved-value">${savedValues}</div>`;
             infoPanelHTML += '</div>';
             
+            const mStar = Math.floor((maxValue - (maxValue % 2 === 0 ? 2 : 1)) / 2);
             infoPanelHTML += '<div class="info-item">';
             infoPanelHTML += '<div class="info-label">Max Value</div>';
             infoPanelHTML += `<div class="info-value max-value"><span class="max-value-highlight ${maxColorClass}">${maxValue}</span></div>`;
             infoPanelHTML += '</div>';
-            
+
             infoPanelHTML += '<div class="info-item">';
-            infoPanelHTML += '<div class="info-label">Sequence Type</div>';
+            infoPanelHTML += '<div class="info-label">M*</div>';
+            infoPanelHTML += `<div class="info-value max-value"><span class="max-value-highlight ${maxColorClass}">${mStar}</span></div>`;
+            infoPanelHTML += '</div>';
+
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">m*</div>';
+            const collatzMstarPanel = Math.max(...collatzData.wormhole);
+            // m* is only defined for mr > 0 (Definition 6.8: Mrep − {0})
+            // For mr=0: pseudocycle is (0,0), no intermediate values, m* is undefined
+            const mStarDisplay = result.entrypointMr === 0 ? '-' : Math.floor((collatzMstarPanel - (collatzMstarPanel % 2 === 0 ? 2 : 1)) / 2);
+            infoPanelHTML += `<div class="info-value" style="color:#ff00ff;font-weight:bold">${mStarDisplay}</div>`;
+            infoPanelHTML += '</div>';
+
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Taxonomy</div>';
             infoPanelHTML += `<div class="info-value"><span class="type-indicator type-${sequenceType.toLowerCase()}">${sequenceType.toUpperCase()}</span></div>`;
+            infoPanelHTML += '</div>';
+
+            const regularityClass = regular ? 'regularity-regular' : 'regularity-irregular';
+            const regularityLabel = regular ? 'Regular' : 'Irregular';
+            infoPanelHTML += '<div class="info-item">';
+            infoPanelHTML += '<div class="info-label">Regularity</div>';
+            infoPanelHTML += `<div class="info-value"><span class="${regularityClass}">${regularityLabel}</span></div>`;
             infoPanelHTML += '</div>';
             
             document.getElementById('infoPanelContent').innerHTML = infoPanelHTML;
