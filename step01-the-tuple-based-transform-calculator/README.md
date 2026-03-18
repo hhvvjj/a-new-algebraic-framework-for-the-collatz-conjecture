@@ -34,7 +34,7 @@ Interactive calculator that transforms Collatz sequences into tuple representati
 ### Transformation Details
 
 For each pair:
-- p computed directly via CRT (O(1))
+- p computed directly via Chinese Remainder Theorem in (O(1))
 - Validation checks (congruence + integrality)
 - Selected tuple $[p, f(p), m, q]$
 - Reconstruction verification
