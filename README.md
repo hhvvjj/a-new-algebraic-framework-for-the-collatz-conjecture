@@ -215,14 +215,13 @@ This framework proves universal convergence to $(4, 2, 1)$ by transforming an it
 
 **Author**: Javier Hernández (Independent Researcher, Spain)
 
-**Abstract**: We present a novel algebraic framework for analyzing the Collatz conjecture based on the tuple-based transform $\phi_1$, a bijection between Collatz sequences and sequences of algebraic tuples. This transform decomposes each Collatz value as $c_i = 2m_i + p_i$, isolating a bounded parity component $p_i \in \{1, 2\}$ from a parameter $m_i$ that encodes the dynamics of the sequence. The resulting parameter space constitutes a dynamical isomorphism, preserving cycles and convergence properties while exposing the algebraic structure 
-underlying sequence evolution.
+**Abstract**: We present a novel algebraic framework for analyzing the Collatz conjecture based on the tuple-based transform $\phi_1$, a bijection between Collatz sequences and sequences of algebraic tuples. This transform decomposes each Collatz value as $c_i = 2m_i + p_i$, isolating a bounded parity component $p_i \in \{1, 2\}$ from a parameter $m_i$ that encodes the dynamics of the sequence. The transform constitutes a dynamical isomorphism, preserving cycles and convergence properties while exposing the algebraic structure underlying sequence evolution.
 
 Within this framework, we prove that consecutive equal values of the parameter $m$ occur only when $m = 0$, establishing $(4, 2, 1)$ as the unique cycle. More fundamentally, we show that parameter repetitions are structurally necessary for the dynamical isomorphism to exist, implying that every Collatz sequence must contain at least one repeated parameter value, and each such repetition defines a wormhole, an invariant trajectory structure that terminates at $m = 0$.
 
-The convergence proof follows from element regularity: every positive integer belongs to exactly one of 42 known classes $\mathcal{S}(m_r)$ determined by its first repeated parameter, and converges regardless of whether it is regular (reaching the entry point through pure divisions by 2) or irregular (reaching it through complex trajectories involving $3n+1$ operations). In both cases, the invariant wormhole structure from the entry point forces convergence to the unique cycle $(4, 2, 1)$. The proof is independent of the finiteness of these 42 parameter values and extends to any potential new repetition classes.
+The convergence proof follows from element regularity: every positive integer belongs to exactly one of 42 known classes $S(m_r)$ determined by its first repeated parameter and converges regardless of whether it is regular (reaching the entry point through pure divisions by 2) or irregular (reaching it through complex trajectories involving $3n+1$ operations). In both cases, the invariant wormhole structure from the entry point forces convergence to the unique cycle $(4, 2, 1)$. The proof is independent of the finiteness of these 42 parameter values and extends to any potential new repetition classes.
 
-The framework also enables stopping time prediction through invariant wormhole structures, applicable to approximately two-thirds of positive integers.
+The framework also enables stopping time prediction through invariant wormhole structure, applicable to approximately two-thirds of positive integers.
 
 [Read the full paper](https://doi.org/10.5281/zenodo.15546925)
 
