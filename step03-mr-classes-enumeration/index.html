@@ -23,7 +23,7 @@
  *   determines its classification (not necessarily the first to appear)
  * - Exhaustive Partition (Lemma 6.5): The classes {S(m_r) : m_r ∈ M_rep} 
  *   partition Z^+ completely - every n belongs to exactly one class
- * - Computational Finiteness (Remark 6.14): All n < 2^40 fall into only 
+ * - Computational Finiteness (Remark 6.17): All n < 2^40 fall into only 
  *   42 distinct classes, suggesting |M_rep| = 42
  * - Discovery Threshold: All 42 values found before n = 7287 (< 2^13)
  * 
@@ -758,7 +758,7 @@
          * await discoveryLoop();
          * // Discovers all unique m_r values in range [1, 100]
          * 
-         * @see Remark 6.14 — all 42 known m_r values are discovered before n = 7287
+         * @see Remark 6.17 — all 42 known m_r values are discovered before n = 7287
          */
         async function discoveryLoop() {
             while (isRunning && currentN <= maxN) {
