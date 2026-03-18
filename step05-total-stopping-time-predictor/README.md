@@ -9,7 +9,7 @@ Calculates total stopping time $\sigma(n)$ (steps to reach 1) using three algori
 
 1. **Multiplicities**: Instant analytical calculation for $n = e(m_r) \cdot 2^k$ (100% efficiency). 
    Special case $S(0)$ for pure powers of 2, where $n = 2^k$, $e(m_r)=1$ and $\tau(m_r)=0$.
-2. **Wormholes**: Iterates only until reaching entry point, then uses pre-computed tail. The efficiency decreases with $n$: for $n < 2^{10}$ it is $\approx 69\%$ and for $n < 2^{40}$ it is $\approx18\%$.
+2. **Wormholes**: Iterates only until reaching entry point, then uses pre-computed tail. The efficiency decreases with $n$: for $n < 2^{10}$ it is $\approx 69\%$ and for $n < 2^{40}$ it is $\approx17.7\%$.
 3. **Standard**: Full iteration when no optimization applies (0% efficiency).
 
 ## Live Demo

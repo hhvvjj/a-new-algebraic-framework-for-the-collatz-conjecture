@@ -32,7 +32,7 @@
  * 
  * PREDICTION METHODS:
  * 
- * 1. MULTIPLICITIES ALGORITHM (Section 9.2, Theorem 9.3):
+ * 1. MULTIPLICITIES ALGORITHM (Subsection 10.2, Theorem 10.7):
  *    - For n = e(m_r) × 2^k where e(m_r) is an entry point
  *    - Formula: σ(n) = k + τ(m_r)
  *    - Efficiency: 100% (instant calculation, no iteration)
@@ -40,7 +40,7 @@
  *    - Special case: n = 2^k (e(m_r)=1, τ=0) → σ(n) = k
  *      Example: σ(16) = log₂(16) = 4
  * 
- * 2. WORMHOLE ALGORITHM (Section 9.3, Theorem 9.7):
+ * 2. WORMHOLE ALGORITHM (Subsection 10.3, Theorem 10.10):
  *    - Computes until reaching known entry point e(m_r)
  *    - Formula: σ(n) = k + τ(m_r)
  *    - Efficiency: (τ(m_r) / total_steps) × 100%
@@ -73,7 +73,7 @@
  * 
  * THEORETICAL SIGNIFICANCE:
  * Demonstrates practical application of the algebraic framework's invariance 
- * properties (Theorems 6.6, 6.8) for efficient stopping time prediction without 
+ * properties (Theorems 6.6, 6.7 and 6.9) for efficient stopping time prediction without 
  * complete sequence iteration. Powers of 2 represent the simplest case of 
  * convergence to S(0).
  * 
