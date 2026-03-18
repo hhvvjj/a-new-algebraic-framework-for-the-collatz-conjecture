@@ -19,11 +19,11 @@
  * https://doi.org/10.5281/zenodo.15546925
  *
  * CORE CONCEPTS:
- * - Dynamical Isomorphism (Theorem 3.11): φ₁ : C → T₁ preserves iteration,
+ * - Dynamical Isomorphism (Theorem 3.13): φ₁ : C → T₁ preserves iteration,
  *   cycles, and convergence between Collatz space and tuple space
  * - Pseudocycles (Section 6): Non-consecutive repetitions of parameter m
- * - Structural Necessity (Theorem 5.6): Parameter repetitions are required
- *   for the bijection to exist - removing them breaks φ and φ⁻¹
+ * - Structural Necessity (Theorems 5.5, 5.6 and 5.7 ): Parameter repetitions 
+ *   are required for the bijection to exist - removing them breaks φ and φ⁻¹
  * 
  * VISUALIZATION FEATURES:
  * 1. Horizontal arrows (ƒ, ƒT): Show parallel evolution in both spaces
@@ -795,7 +795,7 @@
              * Prunes visualization by hiding elements between first occurrence and first repetition.
              * Preserves the first occurrence of m_r, hides intermediate elements.
              * Demonstrates what happens when pseudocycles are removed (breaks isomorphism).
-             * Implements the elimination analysis from Theorem 5.6.
+             * Implements the elimination analysis from Theorems 5.5, 5.6 and 5.7.
              * 
              * @returns {void}
              * 
@@ -824,7 +824,7 @@
              * Prunes visualization by hiding elements between first occurrence and first repetition.
              * Preserves the first repetition of m_r, hides intermediate elements including first occurrence.
              * Demonstrates alternative pseudocycle removal (also breaks isomorphism).
-             * Implements the elimination analysis from Theorem 5.6.
+             * Implements the elimination analysis from Theorems 5.5, 5.6 and 5.7.
              * 
              * @returns {void}
              * 
@@ -1065,7 +1065,7 @@
          * - φ arrows: Forward mapping from Collatz pairs to tuples
          * - φ⁻¹ arrows: Inverse mapping from tuples to Collatz pairs
          * 
-         * Implements the visual proof of Theorem 3.11 (Dynamical Isomorphism).
+         * Implements the visual proof of Theorem 3.13 (Dynamical Isomorphism).
          * 
          * @class ArrowDrawer
          */
@@ -2552,7 +2552,7 @@
             /**
              * Handles clicks on repeated m-value tuples (marked with ✂️ scissors icon).
              * Toggles pruning state and preserves scroll position on the clicked element.
-             * Implements interactive demonstration of Theorem 5.6.
+             * Implements interactive demonstration of Theorems 5.5, 5.6 and 5.7.
              * 
              * @param {string} which - Either 'first' or 'second', indicating which m_r occurrence was clicked
              * @param {HTMLElement} clickedElement - The DOM element that was clicked
@@ -2576,7 +2576,7 @@
              * 
              * Educational purpose: Allows users to interactively explore what happens when
              * the pseudocycle is removed, visually proving that it breaks the dynamical isomorphism
-             * and is therefore a necessary structural component (Theorem 5.6).
+             * and is therefore a necessary structural component (Theorems 5.5, 5.6 and 5.7).
              */
             handleMRClick(which, clickedElement) {
                 const state = this.vizData.pruningState;
