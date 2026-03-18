@@ -7,7 +7,7 @@ This repository presents a novel algebraic framework that proves universal conve
 
 ## Introduction
 
-The Collatz Conjecture, also known as the $3n+1$ problem, is one of mathematics' most deceptively simple unsolved problems. Starting from any positive integer $n$, apply these rules:
+The Collatz conjecture concerns the iteration of an elementary function. Starting from any positive integer $n$, apply these rules:
 - If $n$ is even, divide it by 2
 - If $n$ is odd, multiply it by 3 and add 1
 
@@ -15,9 +15,9 @@ The conjecture states that this process always reaches 1, regardless of the star
 
 Traditional approaches analyze Collatz sequences through iteration and statistical bounds. This framework changes the perspective: our proof transforms the traditional iterative view into a structured algebraic space where convergence becomes a consequence of algebraic structure. 
 
-Every Collatz sequence decomposes uniquely into tuples $[p, f(p), m, 1]$ (Definition 2.3, Theorem 2.13), establishing a bijection $\phi_1: C \rightarrow T_1$ and its inverse $\phi_1^{-1}: T_1 \rightarrow C$ that together, constitute a dynamical isomorphism: it preserves iteration structure, cycles and convergence behavior while transferring the problem into an algebraic tuple space, where hidden structure becomes visible (Theorem 3.11). Within this space, the parameter $m$ governs the dynamics of each sequence. 
+Every Collatz sequence decomposes uniquely into tuples $[p, f(p), m, 1]$ (Definition 2.3, Theorem 2.14), establishing a bijection $\phi_1: C \rightarrow T_1$ and its inverse $\phi_1^{-1}: T_1 \rightarrow C$ that together, constitute a dynamical isomorphism: it preserves iteration structure, cycles and convergence behavior while transferring the problem into an algebraic tuple space, where hidden structure becomes visible (Theorem 3.13). Within this space, the parameter $m$ governs the dynamics of each sequence. 
 
-Under these conditions, algebraic analysis proves that consecutive repetitions of $m$ can only occur at $m = 0$ (Theorem 4.1), establishing $(4, 2, 1)$ as the unique cycle (Corollary 4.4). Furthermore, the repetitions of $m$, named $m_r$, are not merely observed but structurally necessary for the bijection $\phi_1$ to exist (Theorems 5.5, 5.6, 5.7). These repetitions, consecutive or non consecutive, partition all positive integers into classes $S(m_r)$ (Lemma 6.5), each equipped with invariant properties (Theorems 6.6, 6.7, 6.9) that define a deterministic "wormhole" trajectory (Definition 6.11) from a fixed entry point $e(m_r)$ to $n = 1$ (alternatively, from $m_r$ to $m = 0$). 
+Under these conditions, algebraic analysis proves that consecutive repetitions of $m$ can only occur at $m = 0$ (Theorem 4.1), establishing $(4, 2, 1)$ as the unique cycle (Corollary 4.3). Furthermore, the repetitions of $m$, named $m_r$, are not merely observed but structurally necessary for the bijection $\phi_1$ to exist (Theorems 5.5, 5.6, 5.7). These repetitions, consecutive or non consecutive, partition all positive integers into classes $S(m_r)$ (Lemma 6.5), each equipped with invariant properties (Theorems 6.6, 6.7, 6.9) that define a deterministic "wormhole" trajectory (Definition 6.11) from a fixed entry point $e(m_r)$ to $n = 1$ (alternatively, from $m_r$ to $m = 0$). 
 
 From different angle, each $m_r$ value classifies its elements by taxonomic type (Definition 7.3): Type A elements have their global maximum before the pseudocycle, Type B within or at it, and finally, Type C after it. While this taxonomy describes the geometric structure of sequences within each class, it is not required for convergence.
 
@@ -25,8 +25,8 @@ Orthogonal to the taxonomy, the regularity classification (Definition 8.1) deter
 
 ## Key Results Summary
 
-1. **Dynamical Isomorphism**: $\phi_1$ preserves iteration structure and convergence (Theorem 3.11)
-2. **Cycle Uniqueness**: $(4,2,1)$ is the only cycle (Theorem 4.1, Corollary 4.4)
+1. **Dynamical Isomorphism**: $\phi_1$ preserves iteration structure and convergence (Theorem 3.13)
+2. **Cycle Uniqueness**: $(4,2,1)$ is the only cycle (Theorem 4.1, Corollary 4.3)
 3. **Structural Necessity**: Repetitions are required for bijection (Theorems 5.5, 5.6, 5.7)
 4. **Class Partition**: Every $n \in \mathbb{Z}^{+}$ belongs to exactly one $S(m_r)$ (Lemma 6.5)
 5. **Invariant Properties**: Each class has fixed $m^*$, $d(m_r)$ and wormhole structure (Theorems 6.6, 6.7, 6.9, Definition 6.11)
@@ -51,17 +51,17 @@ Orthogonal to the taxonomy, the regularity classification (Definition 8.1) deter
 
 ### Section 2-3: Tuple Transform & Dynamical Isomorphism
 
-The foundation of this framework rests on a deceptively simple observation: every Collatz element can be uniquely decomposed as $c_i = 2m_i + p_i$ (Definition 2.3), where $p_i \in \{1,2\}$ captures parity and $m_i \in \mathbb{Z}^+ \cup \{0\}$ represents scale. This decomposition is not merely notational convenience: it establishes a bijective mapping $\phi_1$ that transforms consecutive pairs $(c_i, c_{i+1})$ into algebraic tuples $[p, f(p), m, 1]$ (Theorem 2.13).
+The foundation of this framework rests on a deceptively simple observation: every Collatz element can be uniquely decomposed as $c_i = 2m_i + p_i$ (Definition 2.3), where $p_i \in \{1,2\}$ captures parity and $m_i \in \mathbb{Z}^+ \cup \{0\}$ represents scale. This decomposition is not merely notational convenience: it establishes a bijective mapping $\phi_1$ that transforms consecutive pairs $(c_i, c_{i+1})$ into algebraic tuples $[p, f(p), m, 1]$ (Theorem 2.14).
 
 This decomposition creates a bijection $\phi_1$ between:
 - **$C$**: The space of Collatz sequences
 - **$T_1$**: The space of algebraic tuples $[p, f(p), m, 1]$
 
-What appears as chaotic iteration in the original Collatz space follows deterministic algebraic rules in this tuple space. More remarkably, $\phi_1$ preserves the dynamical structure itself: the commutative relation $\phi_1 \circ f = f_T \circ \phi_1$ proves that iterating the Collatz function in $C$-space is equivalent to iterating the tuple transform in $T$-space (Theorem 3.11). This is not algebraic homomorphism, addition and multiplication are not preserved (Remark 3.9), but rather a dynamical isomorphism: cycles, convergence and iteration structure remain intact under the transformation (Theorem 3.11).
+What appears as chaotic iteration in the original Collatz space follows deterministic algebraic rules in this tuple space. More remarkably, $\phi_1$ preserves the dynamical structure itself: the commutative relation $\phi_1 \circ f = f_T \circ \phi_1$ proves that iterating the Collatz function in $C$-space is equivalent to iterating the tuple transform in $T$-space (Theorem 3.13). This is not algebraic homomorphism, addition and multiplication are not preserved (Remark 3.9), but rather a dynamical isomorphism: cycles, convergence and iteration structure remain intact under the transformation (Theorem 3.13).
 
 **Key Results**
 
-$\phi_1$ is a structure-preserving bijection that transforms an iterative problem into an algebraic one, revealing topological properties (Theorem 2.13, Theorem 3.11).
+$\phi_1$ is a structure-preserving bijection that transforms an iterative problem into an algebraic one, revealing topological properties (Theorem 2.14, Theorem 3.13).
 
 **Visual Tools**
 
@@ -71,7 +71,7 @@ $\phi_1$ is a structure-preserving bijection that transforms an iterative proble
 
 The tuple-based transform reveals a fundamental structural constraint: consecutive equal $m$-values can occur only at $m = 0$ (Theorem 4.1). This seemingly innocuous algebraic property has profound implications for the Collatz conjecture.
 
-Requiring $m' = m$, consecutive repetition, the tuple transform has four possible evolution rules depending on parity transitions. Each case yields an algebraic equation, and solving these four systems reveals that only $m = 0$ satisfies the constraint. The tuple transform algebraically forbids consecutive parameter repetition at any $m > 0$, making ($4, 2, 1$) the structurally unique cycle (Corollary 4.4).
+Requiring $m' = m$, consecutive repetition, the tuple transform has four possible evolution rules depending on parity transitions. Each case yields an algebraic equation, and solving these four systems reveals that only $m = 0$ satisfies the constraint. The tuple transform algebraically forbids consecutive parameter repetition at any $m > 0$, making ($4, 2, 1$) the structurally unique cycle (Corollary 4.3).
 
 $$
 \begin{align}
@@ -84,7 +84,7 @@ $$
 
 **Key Results**
 
-The tuple transform proves that $(4,2,1)$ is the unique cycle: algebraic analysis shows $m_i = m_{i+1}$ holds only when $m = 0$ (Theorem 4.1), making any other periodic orbit structurally impossible under $\phi_1$ (Corollary 4.4).
+The tuple transform proves that $(4,2,1)$ is the unique cycle: algebraic analysis shows $m_i = m_{i+1}$ holds only when $m = 0$ (Theorem 4.1), making any other periodic orbit structurally impossible under $\phi_1$ (Corollary 4.3).
 
 ### Section 5: Necessity of Repetitions
 
@@ -118,7 +118,7 @@ Within each class, sequences exhibit three distinct geometric patterns based on 
 - **Type B**: $M^*$ occurs within the pseudocycle
 - **Type C**: $M^*$ occurs after the pseudocycle
 
-Type evolution within classes follows strict rules: Type C → Type A and Type B → Type A transitions occur as $n$ grows (Lemma 7.10, Corollary 7.11), while Type B ↔ Type C transitions are forbidden (Corollary 7.6).
+Type evolution within classes follows strict rules: Type C → Type A and Type B → Type A transitions occur as $n$ grows (Lemma 7.9, Corollary 7.10), while Type B ↔ Type C transitions are forbidden (Corollary 7.6).
 
 **Regularity Classification (Section 8)**
 
@@ -135,7 +135,7 @@ This regularity distinction is not merely descriptive: it provides the two struc
 
 **Key Results**
 
-The first repeated parameter $m_r$ partitions $\mathbb{Z}^+$ into classes (Lemma 6.5) with invariant local maximum $m^*$ (Theorem 6.9), invariant distance $d(m_r)$ (Theorem 6.7) and deterministic wormhole trajectories (Definition 6.11). The taxonomic classification (Types A, B or C) describes the geometric structure of sequences within each class (Definition 7.3), while the regularity classification (irregular or regular) provides the mechanistic foundation for universal convergence (Definitions 8.1, 8.2).
+The first repeated parameter $m_r$ partitions $\mathbb{Z}^+$ into classes (Lemma 6.5) with invariant local maximum $m^*$ (Theorem 6.9), invariant distance $d(m_r)$ (Theorem 6.7) and deterministic wormhole trajectories (Definition 6.11). The taxonomic classification (Types A, B or C) describes the geometric structure of sequences within each class (Definition 7.3), while the regularity classification (irregular or regular) provides the structural basis for universal convergence (Definitions 8.1, 8.2).
 
 **Visual Tools**
 
@@ -167,7 +167,7 @@ Every positive integer converges to ($4, 2, 1$) via class-specific wormhole traj
 
 **Visual Tools**
 
-[The Collatz Amphora](step06-the-collatz-amphora/) - Interactive 3D visualization integrating the complete framework into a single explorable structure. The amphora demonstrates how all 42 wormholes form a unified partitioned network, providing visual proof of universal convergence.
+[The Collatz Amphora](step06-the-collatz-amphora/) - Interactive 3D visualization integrating the complete framework into a single explorable structure. The amphora demonstrates how all 42 wormholes form a unified partitioned network, providing an interactive visualization of universal convergence.
 
 ### Section 10: Total Stopping Time Prediction
 
@@ -199,7 +199,7 @@ The wormhole structure enables three complementary algorithms. The Multiplicitie
 
 ### Section 11: Conclusions & Open Questions
 
-This framework proves universal convergence to $(4, 2, 1)$ by transforming an iterative problem into an algebraic one. The tuple-based transform $\phi_1$ reveals structural invariants: cycle uniqueness (Theorem 4.1, Corollary 4.4), necessary repetitions (Theorems 5.5, 5.6, 5.7), invariant wormhole properties (Theorems 6.6, 6.7, 6.9) and the regularity classification of elements and classes (Definitions 8.1, 8.2, Lemma 8.3, Corollary 8.4), that force convergence as a topological consequence rather than a computational observation. Universal convergence follows from the fact that every positive integer is either regular or irregular (Definition 8.1), and both types reach the entry point $e(m_r)$ and follow the same invariant wormhole to $m = 0$ (Lemmas 9.1, 9.2), making the framework robust to discovery of additional $S(m_r)$ classes beyond the 42 computationally verified (Theorem 9.5).
+This framework proves universal convergence to $(4, 2, 1)$ by transforming an iterative problem into an algebraic one. The tuple-based transform $\phi_1$ reveals structural invariants: cycle uniqueness (Theorem 4.1, Corollary 4.3), necessary repetitions (Theorems 5.5, 5.6, 5.7), invariant wormhole properties (Theorems 6.6, 6.7, 6.9) and the regularity classification of elements and classes (Definitions 8.1, 8.2, Lemma 8.3, Corollary 8.4), that force convergence as a topological consequence rather than a computational observation. Universal convergence follows from the fact that every positive integer is either regular or irregular (Definition 8.1), and both types reach the entry point $e(m_r)$ and follow the same invariant wormhole to $m = 0$ (Lemmas 9.1, 9.2), making the framework robust to discovery of additional $S(m_r)$ classes beyond the 42 computationally verified (Theorem 9.5).
 
 **Open Questions**:
 
