@@ -207,7 +207,7 @@ This framework proves universal convergence to $(4, 2, 1)$ by transforming an it
 
 2. **Negative integers**: The Collatz function extends naturally to $\mathbb{Z}^-$, where additional non-trivial cycles exist beyond $(4,2,1)$, such as $(-1) \to (-2) \to (-1)$ and $(-5) \to (-14) \to (-7) \to (-20) \to (-10) \to (-5)$. Adapting the framework to characterize the complete cycle structure and convergence behavior for $n < 0$ is a natural extension.
 
-3. **Generalized functions**: The framework may extend to functions of the form $f(n) = n/d$ for $d|n$ and $f(n) = an+b$ otherwise. Characterizing which parameter choices $(a, b, d)$ yield convergent dynamics could illuminate the broader class of Collatz-like problems.
+3. **Generalized functions**: The tuple-based framework may extend to functions of the form $f(n) = n/2$ for $n$ even and $f(n) = an + b$ for $n$ odd, where $a$ and $b$ are odd positive integers. Characterizing which parameter choices $(a, b)$ yield convergent dynamics could illuminate the broader class of Collatz-like problems.
 
 ## Research Paper
 
