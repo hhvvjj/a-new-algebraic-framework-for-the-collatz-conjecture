@@ -197,11 +197,11 @@ The wormhole structure enables three complementary algorithms. The Multiplicitie
 
 [Total Stopping Time Predictor](step05-total-stopping-time-predictor/) - Optimize computation using multiplicities and wormhole algorithms
 
-### Section 11: Conclusions & Open Questions
+### Section 11: Conclusions & Future Work
 
 This framework proves universal convergence to $(4, 2, 1)$ by transforming an iterative problem into an algebraic one. The tuple-based transform $\phi_1$ reveals structural invariants: cycle uniqueness (Theorem 4.1, Corollary 4.3), necessary repetitions (Theorems 5.5, 5.6, 5.7), invariant wormhole properties (Theorems 6.6, 6.7, 6.9) and the regularity classification of elements and classes (Definitions 8.1, 8.2, Lemma 8.3, Corollary 8.4), that force convergence as a topological consequence rather than a computational observation. Universal convergence follows from the fact that every positive integer is either regular or irregular (Definition 8.1), and both types reach the entry point $e(m_r)$ and follow the same invariant wormhole to $m = 0$ (Lemmas 9.1, 9.2), making the framework robust to discovery of additional $S(m_r)$ classes beyond the 42 computationally verified (Theorem 9.5).
 
-**Open Questions**:
+**Future Work**:
 
 1. **Algebraic Characterization of $M_{\text{rep}}$**: Computational verification for $n < 2^{40}$ identifies exactly 42 distinct parameter values. Whether $M_{\text{rep}}$ is finite or could contain additional values for larger $n$ remains open. Determining membership in $M_{\text{rep}}$ from first principles, without computational enumeration, would provide deeper insight into Collatz dynamics. Proving or disproving finiteness would be a significant theoretical advance, though convergence remains valid regardless (Theorem 9.5).
 
